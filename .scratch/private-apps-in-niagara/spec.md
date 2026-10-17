@@ -177,6 +177,7 @@ These come from Niagara 1.16.32 (versionCode 1638); see the research notes.
   - activation from resolution reports (all found, an essential missing, only optional parts missing);
   - when the notice is due.
 - **Seam 2, fingerprint resolution, is optional:** a JVM test runs the Finder against a Niagara APK pulled locally and asserts that every fingerprint resolves to exactly one target. It's skipped when no APK is present, because Niagara's APK must never be committed to this public repo. The first implementation ticket confirms that DexKit runs on the desktop JVM. If it doesn't, this check moves to the device via the Vector log line.
+  - **Result (ticket 01/02, 2026-10-17):** DexKit has no desktop library as published. Its only artifact is an Android AAR with Android libraries, so a macOS library has to be built from DexKit's source (not yet done; DexKit has never been run on the Mac). The test exists (`FingerprintTest`) and is skipped unless both a Niagara APK (`NIAGARA_APK`) and that host library (`DEXKIT_LIBRARY`) are supplied. Until someone builds the library, the check is the activation log line on the phone. The finder's queries were checked meanwhile by emulating them over a `dexdump` of Niagara 1638; see `docs/research/niagara-internals.md`.
 - **Seam 3, the device check, is manual and optional, and only run after asking the user.** It covers what the JVM can't:
   - the real menus and pickers;
   - adding a private app to every placement;

@@ -14,3 +14,10 @@ local.properties
 *.keystore
 *.p12
 keystore.properties
+
+# Niagara's APK must never be committed to this public repo: pulled copies and anything unpacked from them
+*.apk
+*.apks
+*.xapk
+*.aab
+*.dex

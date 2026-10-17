@@ -1,3 +1,5 @@
+import java.io.File
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -46,7 +48,13 @@ android {
     }
 
     testOptions {
-        unitTests.all { it.useJUnitPlatform() }
+        unitTests.all {
+            it.useJUnitPlatform()
+            // The optional fingerprint test reads these two files. Declaring their contents as inputs makes Gradle
+            // rerun it when a new Niagara APK or DexKit library appears at the same path.
+            it.inputs.files(providers.environmentVariable("NIAGARA_APK").map { listOf(File(it)) }.orElse(emptyList()))
+            it.inputs.files(providers.environmentVariable("DEXKIT_LIBRARY").map { listOf(File(it)) }.orElse(emptyList()))
+        }
     }
 }
 

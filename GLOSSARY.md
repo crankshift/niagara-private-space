@@ -47,3 +47,26 @@ _Avoid_: gesture, button shortcut
 **Placement**:
 An app's position in favorites, a folder or a pop-up, or as a Niagara-button action.
 _Avoid_: entry, spot, slot, item
+
+### The module
+
+**Decision module**:
+The pure Kotlin part of the module that holds every decision, without Android, Niagara or Xposed types. The unit tests exercise it.
+_Avoid_: logic, rules engine
+
+**Finder**:
+The part of the module that locates the Niagara code the module changes, using fingerprints, and produces a resolution report.
+_Avoid_: scanner, resolver
+
+**Fingerprint**:
+How the finder recognises one piece of Niagara's code despite its obfuscated names: a string, a signature or a relation to other code that survives a Niagara update.
+_Avoid_: signature, pattern
+
+**Hook**:
+A piece of Niagara code the module must locate, and usually change. A hook is either found or missing.
+_Avoid_: patch, target
+
+**Resolution report**:
+The finder's list of which hooks were found. The decision module turns it into activate or don't.
+_Avoid_: scan result
+
