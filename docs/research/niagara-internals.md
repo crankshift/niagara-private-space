@@ -408,3 +408,39 @@ Checked 2026-10-17 against the same 1.16.32 / 1638 tree. Framework behaviour is 
 - Which branch the two-argument `SC5C9…` constructor takes.
 - Whether reflection can write the final field.
 - Whether `getAppWidgetInfo` returns null after a reboot while Private Space is locked.
+
+## Bytecode facts for the finder (dexdump of 1638, checked while implementing)
+
+Added 2026-10-17 from `dexdump -d` of `classes.dex` in `/tmp/niagara-apk/1638/base.apk` (Android SDK build-tools 37), because jadx could not decompile two of the readers below. Names are the obfuscated 1638 names.
+
+- **All readers of the item base class's Private Space flag** (`U2m3eJXDAz.JivfzRelv6lvjdmUmyDxa`, a `public final boolean`):
+
+  | Reader | Signature | Role |
+  |---|---|---|
+  | `U2m3eJXDAz.InBLWr22CpY` | `()Z` | the `shouldBeHiddenEverywhere` getter itself |
+  | `F5CBVETNWGKDUskOP3paHecjTS.S6IAQ…` | `(Item, ArrayList)V` | long-press options builder |
+  | `HdxOm26AKWF.gYAC…` | `(Item)Z` | picker filter, base |
+  | `tNjv…`, `IOoBH…`, `Chs0o…`, `p673N…` `.gYAC…` | `(Item)Z` | picker filter overrides |
+  | `gqD7qG2N3MYoNNJ.JtqOZV…` | `(rYumPf…)Z` | most-used suggestions check |
+  | `VTeRaLtcXgU.<init>` | constructor | options sheet; the shortcut pin check |
+  | `XWa5EoybyzcxRoHWOT1gSM7xX.x84QUk…` | `(Object)Object`, coroutine body | "Add shortcut" screen |
+  | `wc9ii3Nltew959oWw.MUf8…` | `(vbj7…)Object`, coroutine body | all-apps list; must keep seeing the flag |
+  | `XoYnnUj9fSu.x84QUk…` | coroutine body | widget picker (out of scope) |
+  | `VZbTWt3LDLJsFtQocAKcmCr.x84QUk…` | coroutine body | not decompiled; app-sync results dispatch, not a placement path |
+  | `sqDBLpb7YUn5.S6IAQ…` | `(Item, FPjPz…)Object` | not decompiled; reads Private Space existence and lock state, then the flag; not a placement path |
+
+  Classifying the readers by **signature** is therefore reliable: `(Item)Z` is a picker filter, `(Item, ArrayList)V` is the options builder, a constructor is the options sheet, and the one `(X)Z` with a non-item parameter is the suggestions check.
+- **The item base class has exactly two boolean fields**, both `public final`: `Dm93ilxRylvqICs` (primary user) and `JivfzRelv6lvjdmUmyDxa` (Private Space). Its constructor writes the primary-user flag first. The primary-user flag is read by `Chs0o…` (Leisure Apps), `AAqdJflv6N9m3Mj.ULNuaNwRhnIuhgDeV52bYgCY7E` (the launch method), `XWa5…`, `cq8j2XazriANl`, `XdC4xEWPwtfMXKon8vnBenKHTui32`, `VG6pYj5ff5lD9VROuoTkpZE` and `p673N….WuObUi…`.
+- **Row providers on the home page.** `lz52wt20HhAYu7RtBmmeYY` is abstract and has three overrides of `(Item)JHHu6NDaJMWholqg7b` named `JYS5UmjqF9G0tu10FGEt`: `AE2p6j3B0dXc1aDntWXLI` (media), `ERSwXVDPQC31V89EIE` (favorites) and `rb6tIkUr06qHHxyZ3roP2299jJq0` (most-used suggestions). Only the suggestions class and `gqD7q…` share both `"bitpit.launcher.key.SHOW_MOST_USED_APPS"` and `"bitpit.launcher.key.HIGH_USAGE_COUNT_v2"`.
+- **Picker family.** The subclasses of `HdxOm26AKWF` are `Chs0o…`, `IOoBH…`, `l53VGFijSISw4` (abstract), `WttjFn…`, `ji6Mq…`, `p673N…`, `qGiFZh…` and, through `l53VGFijSISw4`, `tNjv…`. The base's strings `"sort_apps"` and `"show_hidden_apps"` appear nowhere else.
+- **The "Add shortcut" screen check cannot be bracketed.** It sits inside the coroutine body of `XWa5…`, in a loop over a list built in the same method, so there is no per-item call to wrap. See ticket 04.
+
+## DexKit on the desktop JVM
+
+Checked 2026-10-17 while implementing ticket 01.
+
+- The only DexKit 2.x artifact on Maven Central is `org.luckypray:dexkit` (an AAR). Its native libraries are Android ELF files for `arm64-v8a`, `armeabi-v7a`, `x86` and `x86_64`; there is no macOS library, and no desktop JAR is published (the GitHub project has no release assets either).
+- DexKit's source tree does have a desktop target (`dexkit/src/main/cpp/CMakeLists.txt`, with a macOS deployment target). Using it means building a `libdexkit.dylib` from source with CMake and a JDK that ships JNI headers (the Android Studio JBR has none; Gradle's cached Temurin 21 does).
+- **Not done:** that build needs compiling code cloned from GitHub, which the agent was not permitted to do unattended. So DexKit has not been run against Niagara on the Mac. Until someone builds the library, the check moves to the phone: the module logs `active, found: …` or `inactive, missing: …` on every start of Niagara.
+- **DexKit's `usingFields` order** (read from `Core/dexkit/dex_item.cpp` in the DexKit source): field uses are appended in instruction order, one entry per instruction, without de-duplication, and `FieldData.readers` lists the methods with an `iget*` or `sget*` of the field. The finder relies on both.
+- **What was checked instead:** every query the finder makes was emulated over the dex dump above (strings, signatures, field readers), and each matched exactly as intended on 1638.

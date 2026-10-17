@@ -1,0 +1,28 @@
+package io.github.crankshift.niagaraprivatespace.decision
+
+/**
+ * A piece of Niagara the module must locate before it may change anything. Every hook is required: lifting
+ * Niagara's blocks without being able to hide private apps while Private Space is locked would leak them,
+ * so one missing hook switches the whole module off.
+ */
+enum class Hook {
+    LONG_PRESS_OPTIONS,
+    PRIVATE_SPACE_FLAG,
+    PRIMARY_USER_FLAG,
+}
+
+/** What the finder located in Niagara: the hooks it found, and nothing about the ones it did not. */
+data class ResolutionReport(val found: Set<Hook>)
+
+/** Whether the module changes Niagara, and what it says about that in the log. */
+data class Activation(val found: List<Hook>, val missing: List<Hook>) {
+    val active: Boolean get() = missing.isEmpty()
+
+    /** The line the module writes to Vector's log on every start of Niagara. */
+    fun logLine(): String =
+        if (active) {
+            "active, found: ${found.joinToString()}"
+        } else {
+            "inactive, missing: ${missing.joinToString()}"
+        }
+}
