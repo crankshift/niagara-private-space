@@ -56,7 +56,7 @@ class PendingApp<App : Any> {
         if (kind == ProfileKind.PRIVATE) pending = null
     }
 
-    /** The unlock request failed or was refused, so no unlock is coming. */
+    /** No unlock is coming for the pending app: the request failed or was refused, or was made for something else. */
     fun unlockCancelled() {
         pending = null
     }

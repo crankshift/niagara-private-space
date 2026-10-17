@@ -44,6 +44,10 @@ _Avoid_: group, stack
 A set of extra apps attached to a single favorite.
 _Avoid_: swipe apps, sub-favorites
 
+**Host**:
+The favorite or folder that a pop-up, or a folder's contents, belongs to.
+_Avoid_: owner, parent
+
 **Picker**:
 A Niagara screen where the user chooses apps: the favorites editor, the folder and pop-up editor, the Niagara-button action pickers, and the pickers for music apps, hidden apps, Leisure Apps and the notification summary.
 _Avoid_: selector, chooser
@@ -86,8 +90,12 @@ _Avoid_: entry, spot, slot, item
 
 ### The module
 
+**Unlock message**:
+The row a folder or pop-up shows below its other apps while Private Space is locked, in place of its private apps. It reads "Unlock Private Space to see your apps", and tapping it sends the unlock request. It is built from Niagara's own row for an empty pop-up, so a Niagara update can take it away; the private apps then hide without a message.
+_Avoid_: placeholder, banner
+
 **Pending app**:
-The private app the user tapped while Private Space was locked. The module sends the unlock request and opens the app itself once Private Space is available. It is forgotten when it opens, when another tap replaces it or opens something else, when Private Space locks again, when the unlock request fails, and after a minute.
+The private app the user tapped while Private Space was locked. The module sends the unlock request and opens the app itself once Private Space is available. It is forgotten when it opens, when another tap replaces it or opens something else, when Private Space locks again, when the unlock request fails or is replaced by an unlock message's request, and after a minute.
 _Avoid_: queued app, deferred launch
 
 **Unlock request**:
@@ -107,8 +115,12 @@ How the finder recognises one piece of Niagara's code despite its obfuscated nam
 _Avoid_: signature, pattern
 
 **Hook**:
-A piece of Niagara code the module must locate, and usually change. A hook is either found or missing.
+A piece of Niagara code the module must locate, and usually change. A hook is either found or missing, and is **essential** unless it belongs to an **optional part**.
 _Avoid_: patch, target
+
+**Optional part**:
+A piece of the module that a Niagara update may take away without costing the module its purpose: the unlock message, and the tip system the notice borrows. The module runs without it, and the activation log line says so. One missing hook of a part costs the whole part.
+_Avoid_: feature flag, plugin
 
 **Resolution report**:
 The finder's list of which hooks were found. The decision module turns it into activate or don't.

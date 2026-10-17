@@ -12,6 +12,9 @@ enum class PickerRule {
     PERSONAL_APPS_ONLY,
 }
 
+/** The rows a folder or pop-up shows, and whether the unlock message goes below them. */
+data class FolderContents<Row>(val rows: List<Row>, val showUnlockMessage: Boolean)
+
 /**
  * Every stateless decision the module makes, in its own vocabulary. Nothing here knows about Android, Niagara or
  * Xposed, so the hook adapters only translate Niagara's objects into these inputs and apply the answers. The one
@@ -64,7 +67,27 @@ object Decisions {
         return if (seenWhenListed == ProfileKind.WORK && liftedForLeisureApps) ProfileKind.PERSONAL else seenWhenListed
     }
 
-    /** The module activates only when every hook was found. */
+    /**
+     * What a folder or pop-up shows, given the rows Niagara built for its apps ([kindOf] says which profile a
+     * row's app is from). The folder stays, and while Private Space is locked its private apps leave: the rows of
+     * personal and work apps are kept in order. If any row left and there is a row to say so
+     * ([unlockMessageRowAvailable]), the **unlock message** is asked for, to go below the rest. A folder with no
+     * private apps, or an unlocked one, is untouched. Only the rows are decided here, never the stored contents.
+     */
+    fun <Row> folderOrPopUpContents(
+        rows: List<Row>,
+        kindOf: (Row) -> ProfileKind,
+        privateSpaceLocked: Boolean,
+        unlockMessageRowAvailable: Boolean,
+    ): FolderContents<Row> {
+        val kept = rows.filter { mayBeListed(kindOf(it), privateSpaceLocked) }
+        return FolderContents(kept, showUnlockMessage = kept.size < rows.size && unlockMessageRowAvailable)
+    }
+
+    /**
+     * The module activates when every essential hook was found. The optional parts it can run with are those whose
+     * hooks were all found; the log line says which it runs without.
+     */
     fun activation(report: ResolutionReport): Activation {
         val found = Hook.entries.filter { it in report.found }
         val missing = Hook.entries.filter { it !in report.found }

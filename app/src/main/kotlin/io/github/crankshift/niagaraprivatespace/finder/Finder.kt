@@ -1,6 +1,7 @@
 package io.github.crankshift.niagaraprivatespace.finder
 
 import io.github.crankshift.niagaraprivatespace.decision.Hook
+import java.lang.reflect.Modifier
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.result.ClassData
 import org.luckypray.dexkit.result.FieldData
@@ -76,6 +77,19 @@ class Finder(
         launch?.let { attempt("what the app launch method launches") { findLaunchFields(it) } }?.let {
             fields[Hook.LAUNCH_TARGET] = it.holder
             fields[Hook.LAUNCH_COMPONENT] = it.component
+        }
+
+        val rows = attempt("folder and pop-up row builder") { findPopUpRowBuilder() }
+        rows?.let { methods[Hook.FOLDER_AND_POP_UP_ROWS] = listOf(it) }
+        rows?.let { attempt("app of a folder or pop-up row") { findRowItem(itemBase, it) } }
+            ?.let { fields[Hook.FOLDER_AND_POP_UP_ROW_ITEM] = it }
+        rows?.let { attempt("unlock message row") { findEmptyPopUpRow(itemBase, it) } }?.let { row ->
+            methods[Hook.EMPTY_POP_UP_ROW] = listOf(row.constructor)
+            methods[Hook.EMPTY_POP_UP_ROW_BIND] = listOf(row.bind)
+            methods[Hook.EMPTY_POP_UP_ROW_CLICK] = listOf(row.click)
+            fields[Hook.EMPTY_POP_UP_ROW_TEXT] = row.text
+            fields[Hook.POP_UP_HOST] = row.host
+            fields[Hook.POP_UP_NOTIFICATIONS] = row.notifications
         }
 
         return Resolved(methods, fields)
@@ -233,7 +247,7 @@ class Finder(
      * declaring class.
      */
     private fun findLaunchFields(launch: MethodData): LaunchFields {
-        val read = launch.usingFields.filter { it.usingType.isRead() }.map { it.field }
+        val read = launch.fieldsRead()
         val component =
             read.filter { it.typeName == "android.content.ComponentName" }.distinct()
                 .exactlyOne("component name the launch method reads")
@@ -244,6 +258,70 @@ class Finder(
         return LaunchFields(holder, component)
     }
 
+    /**
+     * Folders and pop-ups open through one controller, the only class that refuses to show a pop-up outside a
+     * `PopupDialogHost`. Its row builder is the only method of it that takes nothing and returns an `ArrayList`.
+     */
+    private fun findPopUpRowBuilder(): MethodData =
+        bridge.findClass { matcher { usingStrings("Popups can only be shown inside PopupDialogHosts") } }
+            .exactlyOne("pop-up controller").methods
+            .filter { it.paramTypeNames.isEmpty() && it.returnTypeName == "java.util.ArrayList" }
+            .exactlyOne("row builder of the pop-up controller")
+
+    /**
+     * Each row the builder makes is a subclass of the app row class, whose `toString` is `Iihsi(i=` and which holds
+     * the app in its only field typed as the item base. (The subclasses hold the host too, in a second such field.)
+     */
+    private fun findRowItem(itemBase: ClassData, rowBuilder: MethodData): FieldData {
+        val appRow = bridge.findClass { matcher { usingStrings("Iihsi(i=") } }.exactlyOne("app row class")
+        check(rowBuilder.invokes.any { it.isConstructor && it.declaredClass.extends(appRow) }) {
+            "the row builder builds no subclass of the app row class"
+        }
+        return appRow.fields.filter { it.typeName == itemBase.name }
+            .exactlyOne("field of the app row that holds the app")
+    }
+
+    /**
+     * The unlock message borrows Niagara's row for an empty pop-up. It is the class whose constructor takes the host
+     * item and Niagara's notifications and uses the row's fixed id; the message hub's empty-state row uses the same
+     * id but takes one argument. With it come its bind and click methods, the text view of its holder, and the
+     * controller's fields for the two constructor arguments: the notifications by their type, and the host as the
+     * one `final` field of the item's type that the row builder reads (the controller's other field of that type,
+     * the app currently selected, changes, so it is not final).
+     */
+    private fun findEmptyPopUpRow(itemBase: ClassData, rowBuilder: MethodData): EmptyPopUpRow {
+        val constructor =
+            bridge.findMethod { matcher { usingNumbers(EMPTY_STATE_ROW_ID) } }
+                .filter { it.isConstructor && it.paramTypeNames.size == 2 && it.paramTypeNames[0] == itemBase.name }
+                .exactlyOne("constructor of the empty-pop-up row")
+        val row = checkNotNull(constructor.declaredClass) { "the empty-pop-up row class is unknown" }
+        val bind =
+            row.methods.filter { !it.isConstructor && it.returnTypeName == "void" && it.paramTypeNames.size == 1 }
+                .exactlyOne("bind method of the empty-pop-up row")
+        val click =
+            row.methods.filter {
+                it.returnTypeName == "void" && it.paramTypeNames.size == 3 &&
+                    it.paramTypeNames[2] == "android.view.View"
+            }.exactlyOne("click method of the empty-pop-up row")
+        val text =
+            bind.fieldsRead()
+                .filter { it.typeName == "android.widget.TextView" }.distinct()
+                .exactlyOne("text view the empty-pop-up row binds")
+        val controllerFields =
+            rowBuilder.fieldsRead()
+                .filter { it.declaredClassName == rowBuilder.declaredClassName }
+        val host =
+            controllerFields.filter { it.typeName == itemBase.name && Modifier.isFinal(it.modifiers) }.distinct()
+                .exactlyOne("final field of the item type the row builder reads")
+        val notifications =
+            controllerFields.filter { it.typeName == constructor.paramTypeNames[1] }.distinct()
+                .exactlyOne("controller field of the empty-pop-up row's second argument")
+        return EmptyPopUpRow(constructor, bind, click, text, host, notifications)
+    }
+
+    /** The fields a method reads, in the order it reads them. */
+    private fun MethodData.fieldsRead(): List<FieldData> = usingFields.filter { it.usingType.isRead() }.map { it.field }
+
     private fun MethodData.isBaseOf(filters: List<MethodData>) =
         filters.any { other -> other != this && other.declaredClass.extends(declaredClass) }
 
@@ -253,6 +331,9 @@ class Finder(
     private fun FieldData.isBooleanOf(itemBase: ClassData) = declaredClassName == itemBase.name && typeName == "boolean"
 
     private companion object {
+        /** The fixed id of the empty-state rows of a pop-up and of the message hub. */
+        const val EMPTY_STATE_ROW_ID = 412316860418L
+
         const val START_MAIN_ACTIVITY =
             "Landroid/content/pm/LauncherApps;->startMainActivity(" +
                 "Landroid/content/ComponentName;Landroid/os/UserHandle;Landroid/graphics/Rect;Landroid/os/Bundle;)V"
@@ -265,6 +346,15 @@ class Finder(
     private class ProfileFlags(val primaryUser: FieldData, val privateSpace: FieldData)
 
     private class LaunchFields(val holder: FieldData, val component: FieldData)
+
+    private class EmptyPopUpRow(
+        val constructor: MethodData,
+        val bind: MethodData,
+        val click: MethodData,
+        val text: FieldData,
+        val host: FieldData,
+        val notifications: FieldData,
+    )
 
     /** The only element. A fingerprint must match exactly once, so none or several is an error. */
     private fun <T> List<T>.exactlyOne(what: String): T =

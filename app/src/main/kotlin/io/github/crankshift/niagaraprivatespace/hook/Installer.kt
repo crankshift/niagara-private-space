@@ -1,6 +1,7 @@
 package io.github.crankshift.niagaraprivatespace.hook
 
 import io.github.crankshift.niagaraprivatespace.decision.Hook
+import io.github.crankshift.niagaraprivatespace.decision.OptionalPart
 import io.github.crankshift.niagaraprivatespace.finder.Resolved
 import io.github.libxposed.api.XposedInterface
 import java.lang.reflect.Constructor
@@ -12,7 +13,10 @@ class Installer(
     private val xposed: XposedInterface,
     private val resolved: Resolved,
     private val classLoader: ClassLoader,
+    private val availableParts: Set<OptionalPart>,
 ) {
+    private val log = ModuleLog(xposed)
+
     fun install(): InstalledHooks {
         val hooks = InstalledHooks(xposed)
         try {
@@ -22,13 +26,28 @@ class Installer(
             // The hooks that hide private apps again come first; the ones that let them in follow.
             HomeRowHooks.install(hooks, flags, methods(Hook.FAVORITES_ROWS) + methods(Hook.OTHER_HOME_ROWS))
             // It lets nothing in and hides nothing, so its place in this order does not matter.
-            LaunchHooks(flags, ModuleLog(xposed))
-                .install(
-                    hooks,
-                    launch = method(Hook.APP_LAUNCH),
-                    target = field(Hook.LAUNCH_TARGET),
-                    component = field(Hook.LAUNCH_COMPONENT),
-                )
+            val launches = LaunchHooks(flags, log)
+            launches.install(
+                hooks,
+                launch = method(Hook.APP_LAUNCH),
+                target = field(Hook.LAUNCH_TARGET),
+                component = field(Hook.LAUNCH_COMPONENT),
+            )
+            // The message row's hooks go in first, and only count if all of them do; the row builder follows.
+            var messageRow: UnlockMessageRow? = null
+            if (OptionalPart.UNLOCK_MESSAGE_ROW in availableParts) {
+                hooks.optional(OptionalPart.UNLOCK_MESSAGE_ROW, log) {
+                    messageRow = unlockMessageRow(launches).also { it.install(hooks) }
+                }
+            }
+            FolderHooks.install(
+                hooks,
+                flags,
+                rowBuilder = method(Hook.FOLDER_AND_POP_UP_ROWS),
+                rowItem = field(Hook.FOLDER_AND_POP_UP_ROW_ITEM),
+                unlockMessageRow = messageRow,
+                log = log,
+            )
 
             OptionsHooks.install(hooks, flags, method(Hook.LONG_PRESS_OPTIONS))
             OptionsHooks.installSheet(hooks, constructor(Hook.OPTIONS_SHEET))
@@ -51,6 +70,19 @@ class Installer(
         }
         return hooks
     }
+
+    /** Builds the unlock message row from what the finder located. Throws if Niagara's classes do not give it all. */
+    private fun unlockMessageRow(launches: LaunchHooks) =
+        UnlockMessageRow(
+            constructor = constructor(Hook.EMPTY_POP_UP_ROW),
+            host = field(Hook.POP_UP_HOST),
+            notifications = field(Hook.POP_UP_NOTIFICATIONS),
+            text = field(Hook.EMPTY_POP_UP_ROW_TEXT),
+            bind = method(Hook.EMPTY_POP_UP_ROW_BIND),
+            click = method(Hook.EMPTY_POP_UP_ROW_CLICK),
+            requestUnlock = launches::requestUnlockWithoutApp,
+            log = log,
+        )
 
     private fun field(hook: Hook): Field = requireNotNull(resolved.fieldOf(hook)).getFieldInstance(classLoader)
 

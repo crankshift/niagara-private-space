@@ -51,9 +51,10 @@ class NiagaraPrivateSpaceModule : XposedModule() {
             return
         }
         try {
-            val hooks = Installer(this, resolved, classLoader).install()
+            val hooks = Installer(this, resolved, classLoader, activation.availableParts).install()
             val found = activation.logLine() + targetCounts(resolved)
-            log(Log.INFO, TAG, "$niagara: $found; ${hooks.size} hooks installed")
+            val dropped = hooks.droppedParts.joinToString("") { "; $it left out at install" }
+            log(Log.INFO, TAG, "$niagara: $found$dropped; ${hooks.size} hooks installed")
         } catch (t: Throwable) {
             log(Log.ERROR, TAG, "$niagara: inactive, installing the hooks failed and none were kept", t)
         }

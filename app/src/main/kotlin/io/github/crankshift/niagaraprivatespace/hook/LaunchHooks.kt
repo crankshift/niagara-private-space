@@ -47,6 +47,15 @@ class LaunchHooks(private val flags: ItemFlags, private val log: ModuleLog) {
         }
     }
 
+    /**
+     * Sends the unlock request for the unlock message, which has no app to open. An app that an earlier tap left
+     * pending is not waiting for this unlock, so it is forgotten rather than opened by surprise.
+     */
+    fun requestUnlockWithoutApp() {
+        withPendingApp { unlockCancelled() }
+        check(requestUnlock()) { "the unlock request could not be made" }
+    }
+
     /** Sends the unlock request. False when it could not be made; the pending app is then forgotten. */
     private fun requestUnlock(): Boolean =
         try {
