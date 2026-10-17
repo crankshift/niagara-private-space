@@ -7,7 +7,7 @@
 **Status:** done-pending-user
 
 - [x] **Signing key:** a new key generated with `keytool`, stored outside the repo with a random password.
-- [ ] **Signing key backup:** the user backs up the key and password in Bitwarden; the agent waits for confirmation. (Your step 1 below.)
+- [x] **Signing key backup:** the user backs up the key and password in Bitwarden; the agent waits for confirmation. *(The user said it was done on 2026-10-17; the agent did not look in Bitwarden. Your step 1 below.)*
 - [ ] **Secrets:** `NIAGARAPS_KEYSTORE_BASE64`, `NIAGARAPS_STORE_PASSWORD` and `MODULES_REPO_TOKEN` (classic PAT, `public_repo`), set on the GitHub repo **only after asking the user**. (Your steps 4 and 6 below; the agent set none.)
 - [x] **Release workflow,** following Origram's (written, and its checks run locally; it has not run on GitHub: see the dry run). It refuses:
   - a tag that doesn't match the APK version;
@@ -25,7 +25,7 @@
 
 In this order. Nothing here has been done for you except the files and the key; no secret is set, nothing is pushed, no GitHub resource exists.
 
-1. **Back up the release key in Bitwarden.** The folder `~/niagaraps-release-backup/` (mode 700, files 600) holds `niagaraps.jks` (the keystore: attach it), `NIAGARAPS_STORE_PASSWORD.txt` (the password, 32 bytes with no trailing newline; the key password is the same) and `NIAGARAPS_KEYSTORE_BASE64.txt` (the keystore as one line of base64, for the secret). Store alias `niagaraps`, type PKCS12, certificate SHA-256 `772745555dd5a6d9192e40a40801363a802b6e7f820583e4fd028d967867c622`. Tell the agent when it is saved. The release key is permanent: installed copies accept updates only from it, and with a new key users would have to uninstall the module before they could update it.
+1. **Back up the release key in Bitwarden** (done, reported by the user on 2026-10-17). The folder `~/niagaraps-release-backup/` (mode 700, files 600) holds `niagaraps.jks` (the keystore: attach it), `NIAGARAPS_STORE_PASSWORD.txt` (the password, 32 bytes with no trailing newline; the key password is the same) and `NIAGARAPS_KEYSTORE_BASE64.txt` (the keystore as one line of base64, for the secret). Store alias `niagaraps`, type PKCS12, certificate SHA-256 `772745555dd5a6d9192e40a40801363a802b6e7f820583e4fd028d967867c622`. Tell the agent when it is saved. The release key is permanent: installed copies accept updates only from it, and with a new key users would have to uninstall the module before they could update it.
 2. **Create the repo** `crankshift/niagara-private-space` on GitHub, public, empty (no README or licence: the repo has both).
 3. **Push:** the local clone already has `origin` pointing at `git@github.com:crankshift/niagara-private-space.git`. Check `git branch --show-current` says `main`, then `git push -u origin main`. This is also ticket 10's "Push" criterion. It starts the `Build` workflow, which does not need any secret. (Ticket 10's step 2 edits the tested version; do that before this push if you have run the device check, so the pushed README is already right.)
 4. **Set two secrets** on the repo:
