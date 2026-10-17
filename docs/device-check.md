@@ -59,7 +59,19 @@ Private Space must be unlocked. Menu names follow Niagara 1.16.32; the path to a
 
 Steps that change data (1, 2, 3, 4, 6 and 7 above) should be undone afterwards: remove the app you added from favorites, restore the folder to its earlier contents, set the Niagara button actions back, show the app you hid, and take the app out of Leisure Apps. Steps 6 and 7 name where the result should appear; if Niagara 1.16.32 puts it somewhere else, record that instead of treating it as a failure.
 
+## Suggestions and app shortcuts
+
+Private Space must be unlocked unless a step says otherwise.
+
+1. **Suggestions.** With "most used apps" on, use a private app often enough for Niagara to suggest it. It appears below favorites. Long-press it: the menu offers **Stop suggesting**. Choose it, and the app leaves the suggestions. Long-press the app in the app list and choose **Suggest again**; it returns.
+2. **App shortcuts, pinned to favorites.** Long-press a private app that has app shortcuts (a messaging app's "New chat", for example). Long-press one of its shortcuts and pin it to favorites. It appears in favorites and opens the right screen of the private copy.
+3. **App shortcuts, pinned to the app list.** Do the same and pin a shortcut to the app list. It appears in the app list. If Android refuses to pin a shortcut from a private profile, record exactly what happens (an error, nothing, a toast) in the research notes and the spec; that is an answer, not a failure of the module.
+4. **Add shortcut screen.** Open Niagara's **Add shortcut** screen. It lists private apps' shortcut entries next to the others. Pick one of a private app's entries and confirm that what it adds works (this is where the module changes a flag for good; see ADR 0001).
+5. **Locked.** Lock Private Space and go back to Niagara's main view. No private app is suggested below favorites (hiding already-suggested rows is ticket 05's job, so check this after it too). Open the **Add shortcut** screen: no private app's entries are listed.
+
+Steps 1, 2, 3 change what Niagara shows: undo them afterwards (suggest the app again if you stopped it, unpin the shortcuts).
+
 ## Expected log line
 
-On Niagara 1.16.32 (1638) with the pickers in place the module should log `active` with `PICKER_FILTER_OVERRIDES=3` and `6 hooks installed`: the options builder, the base picker filter, three picker filter overrides and the Leisure Apps filter. Later tickets add hooks; their device-check sections say what the totals become.
+On Niagara 1.16.32 (1638) with the pickers in place (ticket 03) the module should log `active` with `PICKER_FILTER_OVERRIDES=3` and `6 hooks installed`: the options builder, the base picker filter, three picker filter overrides and the Leisure Apps filter. After the suggestion and shortcut hooks (ticket 04) the totals become `PICKER_FILTER_OVERRIDES=3` and `9 hooks installed`: the six above plus the suggestion check, the options sheet and the Add shortcut screen's items. Later tickets add hooks; their device-check sections say what the totals become.
 

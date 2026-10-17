@@ -6,7 +6,7 @@ Niagara can already store, show and launch private apps in all those places. It 
 
 It is not affiliated with Niagara Launcher.
 
-**Status: work in progress, not released.** Written so far, and not yet run on a phone: the long-press menu of a private app offers what a work app's offers (Favorite, Edit pop-up and so on), and the favorites, folder, pop-up, Niagara-button, music, hide-apps, Leisure Apps and notification-summary pickers list private apps. Still to come: suggestions and app shortcuts, hiding while locked, unlocking from a tap, and the notice for unsupported Niagara versions.
+**Status: work in progress, not released.** Written so far, and not yet run on a phone: the long-press menu of a private app offers what a work app's offers (Favorite, Edit pop-up and so on), and the favorites, folder, pop-up, Niagara-button, music, hide-apps, Leisure Apps and notification-summary pickers list private apps. Suggestions, app shortcuts and the Add shortcut screen are written too. Still to come: hiding while locked, unlocking from a tap, and the notice for unsupported Niagara versions.
 
 ## Requirements
 

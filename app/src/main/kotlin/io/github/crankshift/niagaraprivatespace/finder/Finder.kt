@@ -48,6 +48,18 @@ class Finder(
             else methods[Hook.PICKER_FILTER_OVERRIDES] = overrides
         }
 
+        val readers =
+            attempt("readers of the Private Space flag") {
+                flags.privateSpace.readers.filter { it.declaredClassName != itemBase.name }
+            }.orEmpty()
+        val suggestionCheck = attempt("suggestion eligibility check") { findSuggestionCheck(itemBase, readers) }
+        suggestionCheck?.let { methods[Hook.SUGGESTION_ELIGIBILITY] = listOf(it) }
+        suggestionCheck?.let { attempt("item in the suggestion usage record") { findSuggestionItem(itemBase, it) } }
+            ?.let { fields[Hook.SUGGESTION_ITEM] = it }
+        attempt("options sheet") { findOptionsSheet(readers) }?.let { methods[Hook.OPTIONS_SHEET] = listOf(it) }
+        attempt("Add shortcut items") { findAddShortcutItems(itemBase) }
+            ?.let { methods[Hook.ADD_SHORTCUT_ITEMS] = listOf(it) }
+
         return Resolved(methods, fields)
     }
 
@@ -116,6 +128,47 @@ class Finder(
             it.returnTypeName == "boolean" && it.paramTypeNames == listOf(itemBase.name) && it.declaredClassName != itemBase.name
         }
 
+    /**
+     * Niagara suggests the apps you use most below favorites. The check that admits an app to those suggestions
+     * is the only reader of the Private Space flag that takes one argument which is not the item itself and
+     * returns a boolean: it takes a usage record that holds the item.
+     */
+    private fun findSuggestionCheck(itemBase: ClassData, readers: List<MethodData>): MethodData =
+        readers.filter {
+            it.returnTypeName == "boolean" && it.paramTypeNames.size == 1 && it.paramTypeNames[0] != itemBase.name
+        }.exactlyOne("suggestion eligibility check")
+
+    /** The usage record the suggestion check takes has exactly one field that holds the app, typed as the item base. */
+    private fun findSuggestionItem(itemBase: ClassData, suggestionCheck: MethodData): FieldData =
+        suggestionCheck.paramTypes.exactlyOne("usage record type").fields
+            .filter { it.typeName == itemBase.name }
+            .exactlyOne("field of the usage record that holds the item")
+
+    /**
+     * The long-press options sheet decides in its constructor which shortcuts of an app can be pinned, and checks
+     * the Private Space flag there itself. It is the only constructor that reads the flag.
+     */
+    private fun findOptionsSheet(readers: List<MethodData>): MethodData =
+        readers.filter { it.isConstructor }.exactlyOne("options sheet constructor")
+
+    /**
+     * The Add shortcut screen builds one item per shortcut an app offers, and checks the Private Space flag inside a
+     * coroutine, where it cannot be wrapped. Its items exist for that screen alone. The coroutine is the one method
+     * that asks Android for the shortcut configuration activities, and the item it builds from each of them is
+     * the item class whose constructor takes a `LauncherActivityInfo`.
+     */
+    private fun findAddShortcutItems(itemBase: ClassData): MethodData =
+        bridge.findMethod {
+            matcher { addInvoke(SHORTCUT_CONFIG_ACTIVITIES) }
+        }.exactlyOne("Add shortcut screen coroutine").invokes
+            .filter {
+                it.isConstructor &&
+                    it.declaredClass.extends(itemBase) &&
+                    it.paramTypeNames.firstOrNull() == "android.content.pm.LauncherActivityInfo"
+            }
+            .distinct()
+            .exactlyOne("constructor of the Add shortcut screen's items")
+
     private fun MethodData.isBaseOf(filters: List<MethodData>) =
         filters.any { other -> other != this && other.declaredClass.extends(declaredClass) }
 
@@ -123,6 +176,12 @@ class Finder(
         this != null && ancestor != null && generateSequence(superClass) { it.superClass }.any { it == ancestor }
 
     private fun FieldData.isBooleanOf(itemBase: ClassData) = declaredClassName == itemBase.name && typeName == "boolean"
+
+    private companion object {
+        const val SHORTCUT_CONFIG_ACTIVITIES =
+            "Landroid/content/pm/LauncherApps;->" +
+                "getShortcutConfigActivityList(Ljava/lang/String;Landroid/os/UserHandle;)Ljava/util/List;"
+    }
 
     private class ProfileFlags(val primaryUser: FieldData, val privateSpace: FieldData)
 

@@ -21,6 +21,18 @@ enum class Hook {
 
     /** The Leisure Apps picker's filter, which also asks for a personal app. */
     PICKER_FILTER_LEISURE_APPS,
+
+    /** The check that keeps private apps out of the most-used suggestions below favorites. */
+    SUGGESTION_ELIGIBILITY,
+
+    /** The field of the suggestion check's usage record that holds the app being asked about. */
+    SUGGESTION_ITEM,
+
+    /** The options sheet, whose constructor also decides which shortcuts of an app can be pinned. */
+    OPTIONS_SHEET,
+
+    /** The constructor of the items the Add shortcut screen builds for each shortcut an app offers. */
+    ADD_SHORTCUT_ITEMS,
 }
 
 /** What the finder located in Niagara: the hooks it found, and nothing about the ones it did not. */

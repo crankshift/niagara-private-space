@@ -48,6 +48,26 @@ _Avoid_: selector, chooser
 Niagara's category of distracting apps. Its picker asks for a personal app, which work apps do not satisfy.
 _Avoid_: distraction apps
 
+**Suggestions**:
+The apps Niagara shows below favorites because the user opens them most. The user can stop and resume suggesting an app.
+_Avoid_: recommendations, most-used row
+
+**App shortcut**:
+A shortcut an app offers for one of its actions, such as "New chat". It can be pinned to favorites or the app list.
+_Avoid_: deep link, quick action
+
+**Long-press options**:
+The menu Niagara shows when the user long-presses an app, folder or shortcut. Niagara's code calls it the options sheet.
+_Avoid_: context menu, popup menu
+
+**Add shortcut screen**:
+The Niagara screen that lists shortcuts apps offer, for adding to favorites.
+_Avoid_: shortcut picker
+
+**Listed**:
+Shown by a Niagara list that offers apps by themselves, or as a row of the home page: suggestions, the Add shortcut screen, pickers, favorites. A private app is listed only while Private Space is unlocked.
+_Avoid_: visible, shown
+
 **Niagara-button action**:
 The app the Niagara button opens on tap or on swipe up.
 _Avoid_: gesture, button shortcut

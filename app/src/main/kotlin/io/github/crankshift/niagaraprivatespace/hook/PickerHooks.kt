@@ -2,7 +2,6 @@ package io.github.crankshift.niagaraprivatespace.hook
 
 import io.github.crankshift.niagaraprivatespace.decision.Decisions
 import io.github.crankshift.niagaraprivatespace.decision.PickerRule
-import io.github.crankshift.niagaraprivatespace.decision.ProfileKind
 import java.lang.reflect.Method
 
 /**
@@ -29,8 +28,8 @@ object PickerHooks {
                 chain.proceed()
             } else {
                 val kind = flags.kindOf(item)
-                val locked = kind == ProfileKind.PRIVATE && PrivateSpaceState.isLocked()
-                flags.whileSeenAs(item, Decisions.profileSeenByPicker(kind, rule, locked)) { chain.proceed() }
+                val seen = Decisions.profileSeenByPicker(kind, rule, PrivateSpaceState.isLockedFor(kind))
+                flags.whileSeenAs(item, seen) { chain.proceed() }
             }
         }
     }

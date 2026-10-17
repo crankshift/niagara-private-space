@@ -16,10 +16,14 @@ class ActivationTest {
             Hook.PICKER_FILTER,
             Hook.PICKER_FILTER_OVERRIDES,
             Hook.PICKER_FILTER_LEISURE_APPS,
+            Hook.SUGGESTION_ELIGIBILITY,
+            Hook.SUGGESTION_ITEM,
+            Hook.OPTIONS_SHEET,
+            Hook.ADD_SHORTCUT_ITEMS,
         )
 
     @Test
-    fun `the module needs the long-press options builder, both profile flags and every picker filter`() {
+    fun `the module needs the long-press options builder, both profile flags, every picker filter and the suggestion and shortcut checks`() {
         assertEquals(everyHook.toSet(), Hook.entries.toSet())
     }
 
@@ -51,7 +55,9 @@ class ActivationTest {
 
     @Test
     fun `the log line of an inactive module names only what is missing`() {
-        val line = Decisions.activation(reportOf(*everyHook.filter { it != Hook.LONG_PRESS_OPTIONS }.toTypedArray())).logLine()
+        val allButOne = everyHook.filter { it != Hook.LONG_PRESS_OPTIONS }.toTypedArray()
+
+        val line = Decisions.activation(reportOf(*allButOne)).logLine()
 
         assertTrue(line.startsWith("inactive"), line)
         assertTrue(line.contains("LONG_PRESS_OPTIONS"), line)
@@ -67,5 +73,6 @@ class ActivationTest {
         assertTrue(line.contains("PRIVATE_SPACE_FLAG"), line)
         assertTrue(line.contains("PRIMARY_USER_FLAG"), line)
         assertTrue(line.contains("PICKER_FILTER_OVERRIDES"), line)
+        assertTrue(line.contains("ADD_SHORTCUT_ITEMS"), line)
     }
 }

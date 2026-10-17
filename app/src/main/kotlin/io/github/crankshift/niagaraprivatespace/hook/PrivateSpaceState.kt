@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.LauncherApps
 import android.os.UserHandle
 import android.os.UserManager
+import io.github.crankshift.niagaraprivatespace.decision.ProfileKind
 
 /**
  * Whether Private Space is locked, asked of Android itself. Niagara's own "hidden everywhere" state is no
@@ -17,6 +18,9 @@ import android.os.UserManager
  */
 object PrivateSpaceState {
     private const val PRIVATE_PROFILE_TYPE = "android.os.usertype.profile.PRIVATE"
+
+    /** Whether a lock matters for an app of this [kind]: only private apps are hidden by it. */
+    fun isLockedFor(kind: ProfileKind): Boolean = kind == ProfileKind.PRIVATE && isLocked()
 
     fun isLocked(): Boolean =
         try {
