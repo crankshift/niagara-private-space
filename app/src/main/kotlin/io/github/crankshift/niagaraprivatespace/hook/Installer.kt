@@ -19,6 +19,9 @@ class Installer(
             check(ItemFlags.canWriteFinalFields()) { "this runtime does not let reflection write final fields" }
             val flags = ItemFlags(field(Hook.PRIMARY_USER_FLAG), field(Hook.PRIVATE_SPACE_FLAG))
 
+            // The hooks that hide private apps again come first; the ones that let them in follow.
+            HomeRowHooks.install(hooks, flags, methods(Hook.FAVORITES_ROWS) + methods(Hook.OTHER_HOME_ROWS))
+
             OptionsHooks.install(hooks, flags, method(Hook.LONG_PRESS_OPTIONS))
             OptionsHooks.installSheet(hooks, constructor(Hook.OPTIONS_SHEET))
             PickerHooks.install(
@@ -27,7 +30,12 @@ class Installer(
                 filters = methods(Hook.PICKER_FILTER) + methods(Hook.PICKER_FILTER_OVERRIDES),
                 leisureAppsFilter = method(Hook.PICKER_FILTER_LEISURE_APPS),
             )
-            ListingHooks.installSuggestions(hooks, flags, method(Hook.SUGGESTION_ELIGIBILITY), field(Hook.SUGGESTION_ITEM))
+            ListingHooks.installSuggestions(
+                hooks,
+                flags,
+                suggestionCheck = method(Hook.SUGGESTION_ELIGIBILITY),
+                itemInRecord = field(Hook.SUGGESTION_ITEM),
+            )
             ListingHooks.installAddShortcutItems(hooks, flags, constructor(Hook.ADD_SHORTCUT_ITEMS))
         } catch (t: Throwable) {
             hooks.removeAll()

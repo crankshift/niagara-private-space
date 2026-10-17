@@ -16,7 +16,7 @@ Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents
 
 ## Device check
 
-`docs/device-check.md` is the on-device check. It is optional, and an agent must always ask the user before running it: it locks and unlocks Private Space, restarts Niagara and reads its database as root.
+`docs/device-check.md` is the on-device check. It is optional, and an agent must always ask the user before running it: it locks and unlocks Private Space, restarts Niagara, reboots the phone and reads Niagara's database as root.
 
 ## Fingerprint check
 

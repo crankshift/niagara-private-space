@@ -24,7 +24,10 @@ class NiagaraPrivateSpaceModule : XposedModule() {
         try {
             loadDexKit()
             DexKitBridge.create(param.classLoader, true).use { bridge ->
-                val resolved = Finder(bridge) { what, error -> log(Log.WARN, TAG, "$niagara: finding the $what failed", error) }.resolve()
+                val finder = Finder(bridge) { what, error ->
+                    log(Log.WARN, TAG, "$niagara: finding the $what failed", error)
+                }
+                val resolved = finder.resolve()
                 activate(resolved, param.classLoader, niagara)
             }
         } catch (t: Throwable) {
@@ -49,7 +52,8 @@ class NiagaraPrivateSpaceModule : XposedModule() {
         }
         try {
             val hooks = Installer(this, resolved, classLoader).install()
-            log(Log.INFO, TAG, "$niagara: ${activation.logLine()}${targetCounts(resolved)}; ${hooks.size} hooks installed")
+            val found = activation.logLine() + targetCounts(resolved)
+            log(Log.INFO, TAG, "$niagara: $found; ${hooks.size} hooks installed")
         } catch (t: Throwable) {
             log(Log.ERROR, TAG, "$niagara: inactive, installing the hooks failed and none were kept", t)
         }
@@ -58,7 +62,8 @@ class NiagaraPrivateSpaceModule : XposedModule() {
     /** For hooks that cover several methods, how many were found, so a Niagara update that loses one shows up. */
     private fun targetCounts(resolved: Resolved): String {
         val several = Hook.entries.filter { resolved.methodsOf(it).size > 1 }
-        return if (several.isEmpty()) "" else " (" + several.joinToString { "${it.name}=${resolved.methodsOf(it).size}" } + ")"
+        if (several.isEmpty()) return ""
+        return several.joinToString(prefix = " (", postfix = ")") { "${it.name}=${resolved.methodsOf(it).size}" }
     }
 
     companion object {

@@ -68,6 +68,10 @@ _Avoid_: shortcut picker
 Shown by a Niagara list that offers apps by themselves, or as a row of the home page: suggestions, the Add shortcut screen, pickers, favorites. A private app is listed only while Private Space is unlocked.
 _Avoid_: visible, shown
 
+**Home page**:
+Niagara's main view. It is built from sections: favorites, suggestions and the media section, which shows music apps when headphones or a speaker connect. Each section renders one row per app it shows.
+_Avoid_: home screen (the phone's own), launcher page
+
 **Niagara-button action**:
 The app the Niagara button opens on tap or on swipe up.
 _Avoid_: gesture, button shortcut

@@ -20,10 +20,12 @@ class ActivationTest {
             Hook.SUGGESTION_ITEM,
             Hook.OPTIONS_SHEET,
             Hook.ADD_SHORTCUT_ITEMS,
+            Hook.FAVORITES_ROWS,
+            Hook.OTHER_HOME_ROWS,
         )
 
     @Test
-    fun `the module needs the long-press options builder, both profile flags, every picker filter and the suggestion and shortcut checks`() {
+    fun `the module needs every hook it finds in Niagara`() {
         assertEquals(everyHook.toSet(), Hook.entries.toSet())
     }
 

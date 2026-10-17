@@ -33,6 +33,12 @@ enum class Hook {
 
     /** The constructor of the items the Add shortcut screen builds for each shortcut an app offers. */
     ADD_SHORTCUT_ITEMS,
+
+    /** The favorites section of the home page: the method that turns a favorite into the row Niagara renders. */
+    FAVORITES_ROWS,
+
+    /** The other sections of the home page, built the same way: most-used suggestions and the media section. */
+    OTHER_HOME_ROWS,
 }
 
 /** What the finder located in Niagara: the hooks it found, and nothing about the ones it did not. */

@@ -36,7 +36,8 @@ class ItemFlags(private val primaryUser: Field, private val privateSpace: Field)
 
     /**
      * Runs [block] with [item] looking like an app from [seen] to Niagara, then puts the flags back. Inside a
-     * [FlagChangeScope] the flags are put back when the scope ends instead, for checks that run after the hooked method.
+     * [FlagChangeScope] the flags are put back when the scope ends instead, for checks that run after the hooked
+     * method returns.
      * Calls are serialised: two overlapping calls on one item (a picker filtering on a background thread while the
      * user long-presses) would otherwise restore each other's half-changed values and leave the item looking like
      * a work app for good. Niagara's own reads are not locked, so they can still see the changed flags for the

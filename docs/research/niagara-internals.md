@@ -444,3 +444,16 @@ Checked 2026-10-17 while implementing ticket 01.
 - **Not done:** that build needs compiling code cloned from GitHub, which the agent was not permitted to do unattended. So DexKit has not been run against Niagara on the Mac. Until someone builds the library, the check moves to the phone: the module logs `active, found: …` or `inactive, missing: …` on every start of Niagara.
 - **DexKit's `usingFields` order** (read from `Core/dexkit/dex_item.cpp` in the DexKit source): field uses are appended in instruction order, one entry per instruction, without de-duplication, and `FieldData.readers` lists the methods with an `iget*` or `sget*` of the field. The finder relies on both.
 - **What was checked instead:** every query the finder makes was emulated over the dex dump above (strings, signatures, field readers), and each matched exactly as intended on 1638.
+
+## Home page sections, as built for ticket 05
+
+Checked 2026-10-17 on the 1638 dexdump and the jadx tree.
+
+- `lz52wt20HhAYu7RtBmmeYY` is the abstract section base. Its three subclasses each override `JYS5UmjqF9G0tu10FGEt(Item)` returning the row type `JHHu6NDaJMWholqg7b`: the media section `AE2p6j3B0dXc1aDntWXLI`, the favorites section `ERSwXVDPQC31V89EIE` and the most-used suggestions section `rb6tIkUr06qHHxyZ3roP2299jJq0`. (A fourth subclass, `VwveaytoBMh7dtuVcOUazw`, has no such method.)
+- `MOctxdZAQ6hZ.pTm4A75ae4760qpkoAJylH5XGIQ7(section, item)` calls the section's method and returns null when it does; both the full build and the incremental update skip a null row. So a row provider that answers null leaves the item out of the page, and the stored lists are untouched.
+- **The media section is a leak the spec did not list.** `AE2p6…` shows apps from the music-apps feed whenever headphones or a speaker are connected, with no check of the item's state. Once the music-apps picker lists private apps (ticket 03), a locked private music app would appear there. The module therefore filters every section's rows, not just favorites.
+- The suggestions section keeps a list rebuilt only when its feeds change (`rb6tI….qxwCegY…`), so a private app already in the suggestions feed stays there when Private Space locks. Filtering its rows covers that.
+- **Known leak, not fixed.** The favorites and folder editors draw their current selection straight from the stored feed with no lock check (`ho3Z3OuW2p`, around the code that renders the selection; `HdxOm26AKWF` seeds the selection unfiltered, which is why private placements survive editing). So while Private Space is locked, those editors list the private apps already placed. Removing them from the selection would delete the placements on save. A hook on the row-adding step (the static method `HdxOm26AKWF.HdbD73X0ZC0vBBjEb96BB`, called for each selected and candidate app) might skip the row for a locked private app without touching the selection; not tried.
+- **Lock and the missing-app ageing.** The "Unverified" note under (e) about `getActivityList` while locked was settled by a short lock on 2026-10-17, according to the spec; a lock of days is not covered (see the optional step in `docs/device-check.md`).
+- **Suggestions refill.** Hiding locked favorites frees room under the suggestion section's cap of eight rows, so other (non-private) suggestions can appear while Private Space is locked. Harmless.
+

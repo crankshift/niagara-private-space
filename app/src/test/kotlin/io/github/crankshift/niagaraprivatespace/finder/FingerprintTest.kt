@@ -31,7 +31,8 @@ class FingerprintTest {
             assertAll(
                 Hook.entries.map { hook ->
                     Executable {
-                        assertTrue(hook in resolved.report.found, "$hook is missing or ambiguous; finder errors: $errors")
+                        val message = "$hook is missing or ambiguous; finder errors: $errors"
+                        assertTrue(hook in resolved.report.found, message)
                     }
                 },
             )

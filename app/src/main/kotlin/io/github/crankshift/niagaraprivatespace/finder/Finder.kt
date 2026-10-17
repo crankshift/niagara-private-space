@@ -28,13 +28,18 @@ class Finder(
         optionsBuilder?.let { methods[Hook.LONG_PRESS_OPTIONS] = listOf(it) }
 
         val flags =
-            if (itemBase != null && optionsBuilder != null) attempt("profile flags") { findProfileFlags(itemBase, optionsBuilder) } else null
+            if (itemBase != null && optionsBuilder != null) {
+                attempt("profile flags") { findProfileFlags(itemBase, optionsBuilder) }
+            } else {
+                null
+            }
         if (itemBase == null || flags == null) return Resolved(methods, fields)
         fields[Hook.PRIMARY_USER_FLAG] = flags.primaryUser
         fields[Hook.PRIVATE_SPACE_FLAG] = flags.privateSpace
 
         val filters = attempt("picker filters") { findPickerFilters(itemBase, flags) }.orEmpty()
-        val pickerBase = attempt("base picker filter") { filters.filter { it.isBaseOf(filters) }.exactlyOne("base picker filter") }
+        val pickerBase =
+            attempt("base picker filter") { filters.filter { it.isBaseOf(filters) }.exactlyOne("base picker filter") }
         if (pickerBase != null) {
             methods[Hook.PICKER_FILTER] = listOf(pickerBase)
             val family = filters.filter { it != pickerBase && it.declaredClass.extends(pickerBase.declaredClass) }
@@ -59,6 +64,12 @@ class Finder(
         attempt("options sheet") { findOptionsSheet(readers) }?.let { methods[Hook.OPTIONS_SHEET] = listOf(it) }
         attempt("Add shortcut items") { findAddShortcutItems(itemBase) }
             ?.let { methods[Hook.ADD_SHORTCUT_ITEMS] = listOf(it) }
+
+        val favoritesProvider = attempt("favorites row provider") { findFavoritesRowProvider(itemBase) }
+        favoritesProvider?.let { methods[Hook.FAVORITES_ROWS] = listOf(it) }
+        val otherProviders =
+            favoritesProvider?.let { attempt("other home page row providers") { findOtherRowProviders(itemBase, it) } }
+        otherProviders?.let { methods[Hook.OTHER_HOME_ROWS] = it }
 
         return Resolved(methods, fields)
     }
@@ -125,7 +136,9 @@ class Finder(
      */
     private fun findPickerFilters(itemBase: ClassData, flags: ProfileFlags): List<MethodData> =
         flags.privateSpace.readers.filter {
-            it.returnTypeName == "boolean" && it.paramTypeNames == listOf(itemBase.name) && it.declaredClassName != itemBase.name
+            it.returnTypeName == "boolean" &&
+                it.paramTypeNames == listOf(itemBase.name) &&
+                it.declaredClassName != itemBase.name
         }
 
     /**
@@ -168,6 +181,35 @@ class Finder(
             }
             .distinct()
             .exactlyOne("constructor of the Add shortcut screen's items")
+
+    /**
+     * The home page is built from sections, and each section turns a placed app into the row it renders (or
+     * nothing). The favorites section logs `requestHsi: %s index: %s` as it does, which no other code does.
+     */
+    private fun findFavoritesRowProvider(itemBase: ClassData): MethodData =
+        bridge.findMethod {
+            matcher {
+                paramTypes(itemBase.name)
+                usingStrings("requestHsi: %s index: %s")
+            }
+        }.exactlyOne("favorites row provider")
+
+    /**
+     * The other sections (most-used suggestions, the media section) extend the same section base class as the
+     * favorites section and have a method with the same signature. The base class's own abstract version belongs
+     * to the base, not to a subclass, and is left out.
+     */
+    private fun findOtherRowProviders(itemBase: ClassData, favoritesProvider: MethodData): List<MethodData> {
+        val favoritesSection = checkNotNull(favoritesProvider.declaredClass) { "favorites section class is unknown" }
+        val sectionBase = checkNotNull(favoritesSection.superClass) { "favorites section has no base class" }
+        return bridge.findMethod {
+            matcher {
+                paramTypes(itemBase.name)
+                returnType(favoritesProvider.returnTypeName)
+            }
+        }.filter { it != favoritesProvider && it.declaredClass.extends(sectionBase) }
+            .ifEmpty { error("other home page row providers matched nothing") }
+    }
 
     private fun MethodData.isBaseOf(filters: List<MethodData>) =
         filters.any { other -> other != this && other.declaredClass.extends(declaredClass) }

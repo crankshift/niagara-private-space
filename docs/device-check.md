@@ -67,11 +67,32 @@ Private Space must be unlocked unless a step says otherwise.
 2. **App shortcuts, pinned to favorites.** Long-press a private app that has app shortcuts (a messaging app's "New chat", for example). Long-press one of its shortcuts and pin it to favorites. It appears in favorites and opens the right screen of the private copy.
 3. **App shortcuts, pinned to the app list.** Do the same and pin a shortcut to the app list. It appears in the app list. If Android refuses to pin a shortcut from a private profile, record exactly what happens (an error, nothing, a toast) in the research notes and the spec; that is an answer, not a failure of the module.
 4. **Add shortcut screen.** Open Niagara's **Add shortcut** screen. It lists private apps' shortcut entries next to the others. Pick one of a private app's entries and confirm that what it adds works (this is where the module changes a flag for good; see ADR 0001).
-5. **Locked.** Lock Private Space and go back to Niagara's main view. No private app is suggested below favorites (hiding already-suggested rows is ticket 05's job, so check this after it too). Open the **Add shortcut** screen: no private app's entries are listed.
+5. **Locked.** Lock Private Space and go back to Niagara's main view. No private app is suggested below favorites. Open the **Add shortcut** screen: no private app's entries are listed.
 
 Steps 1, 2, 3 change what Niagara shows: undo them afterwards (suggest the app again if you stopped it, unpin the shortcuts).
 
+## Hiding locked private apps from the home page
+
+This section reads Niagara's database as root and locks, unlocks and reboots the phone, so it needs your go-ahead. The database is probably `/data/data/bitpit.launcher/databases/launcher.db` (check with `ls`). The earlier research read the database with read-only SELECTs, so some `sqlite3` binary was reachable through root; if none is, `adb pull` the copied files from `/data/local/tmp/nps/` and read them on the Mac. The table and column names are those in `docs/research/niagara-internals.md` (`Feed`: `id`, `type`, `item_index`, `item_id`, `item_type`; `App`: `id`, `package_name`, `user`, `flags`).
+
+```sh
+DB=/data/data/bitpit.launcher/databases/launcher.db
+# Read a copy, so root does not leave -wal or -shm files next to Niagara's live database.
+snapshot() {
+  adb shell "su -c 'mkdir -p /data/local/tmp/nps && cp -f $DB $DB-wal $DB-shm /data/local/tmp/nps/ 2>/dev/null; chmod -R a+r /data/local/tmp/nps'"
+  adb shell "sqlite3 -readonly /data/local/tmp/nps/launcher.db 'SELECT id, type, item_index, item_id, item_type FROM Feed ORDER BY id, type, item_index; SELECT id, package_name, user, flags FROM App WHERE user = 10 ORDER BY id;'"
+}
+```
+
+1. **Before.** Favorites hold at least one private app, one of them with a pop-up attached (ticket 01). Run `snapshot > before.txt` and note the private apps' positions on the home page.
+2. **Lock.** Lock Private Space. The private favorites disappear, together with the pop-up attached to one of them. The other favorites keep their order. No private app is among the suggestions below favorites, and none appears in the media section (play audio through headphones with a private music app set as a music app, if you have one).
+3. **Unlock.** Unlock Private Space. Every private favorite is back in its old position, with its pop-up, without restarting Niagara.
+4. **Edit while locked.** Lock again. Open the favorites editor, reorder or add a personal app, and save. Private apps are not offered as candidates. The editor's "current selection" may still list the private favorites: the editor draws the stored selection without a lock check, and filtering the selection itself would delete the placements when it is saved, so the module leaves it. Record what you see. Unlock: every private favorite is still there. This is the check that only rendered rows were filtered. Afterwards undo your edit.
+5. **Reboot while locked.** Lock, reboot the phone, unlock. Every placement is still there. Optional, for Niagara's ageing of missing apps (a row gets bit 256 after three days and 512 after fourteen): leave Private Space locked for several days, then run `snapshot` and check that no private app gained bit 256.
+6. **After.** Run `snapshot > after.txt` and compare with `before.txt`: the `Feed` rows are the same apart from changes you made on purpose, and the private apps' `flags` (user 10) never gained bit 256 or 512 (Niagara's "missing app" cleanup). Bit 1024 is set while locked and cleared again when unlocked. If 256 appears after a long time locked, Niagara's startup scan stopped seeing the private apps while locked and the cleanup would eventually delete placements: record it and stop.
+7. **Suspended private apps (test phone).** Many private apps on the test phone are suspended by root. While Private Space is unlocked their rows must still show.
+
 ## Expected log line
 
-On Niagara 1.16.32 (1638) with the pickers in place (ticket 03) the module should log `active` with `PICKER_FILTER_OVERRIDES=3` and `6 hooks installed`: the options builder, the base picker filter, three picker filter overrides and the Leisure Apps filter. After the suggestion and shortcut hooks (ticket 04) the totals become `PICKER_FILTER_OVERRIDES=3` and `9 hooks installed`: the six above plus the suggestion check, the options sheet and the Add shortcut screen's items. Later tickets add hooks; their device-check sections say what the totals become.
+On Niagara 1.16.32 (1638) with the pickers in place (ticket 03) the module should log `active` with `PICKER_FILTER_OVERRIDES=3` and `6 hooks installed`: the options builder, the base picker filter, three picker filter overrides and the Leisure Apps filter. After the suggestion and shortcut hooks (ticket 04) the totals become `PICKER_FILTER_OVERRIDES=3` and `9 hooks installed`: the six above plus the suggestion check, the options sheet and the Add shortcut screen's items. After the home page rows (ticket 05) they become `OTHER_HOME_ROWS=2` and `12 hooks installed`: the favorites rows, the suggestions rows and the media rows. Later tickets add hooks; their device-check sections say what the totals become.
 
