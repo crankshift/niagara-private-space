@@ -15,7 +15,7 @@ It is not affiliated with Niagara Launcher.
 - Tapping a locked private app (the Niagara button, for example) brings up Android's unlock screen and opens the app once Private Space is unlocked.
 - If a Niagara update means the module no longer recognises the code it changes, it changes nothing, and tells you once per Niagara version with a tip on Niagara's home page (or a Toast).
 
-Still to come: the release pipeline and the first release.
+The release pipeline is written but has not run yet (see `AGENTS.md`). The first release, `1-0.1.0`, waits for the device check on a phone; [CHANGELOG.md](CHANGELOG.md) will list what each release holds.
 
 ## Requirements
 

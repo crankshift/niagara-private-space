@@ -24,6 +24,8 @@ The approval bot on submission#1865 warned about a blank description. In submiss
    - legacy: `assets/xposed_init` plus `xposedmodule` metadata, or
    - libxposed: `META-INF/xposed/module.prop` with `minApiVersion` and `targetApiVersion`, plus `java_init.list`.
 6. Optional files in the org repo: `README.md`, `SUMMARY` (max 512 chars), `SOURCE_URL`, `SCOPE` (JSON). Never add a `HIDE` file.
+   - `SCOPE` (checked 2026-10-17): the store runs `JSON.parse` on it with no validation and keeps `null` if parsing fails, and `ModuleRecord.scope` is typed `unknown` (`src/lib/modules.ts` and `src/lib/types.ts` on the `primer` branch). LSPosed's own manager model (`OnlineModule.scope`) is a `List<String>`, so this module writes a JSON array of package names. Vector deserializes the module JSON with Gson into its own `OnlineModule` and skips entries that fail to bind (`RepoRepository.kt`); I could not find that class, so whether Vector accepts the array is unverified.
+   - `HIDE` hides a module by existing: `hide: Boolean(repo.hide)` in `src/lib/modules.ts` (checked 2026-10-17) tests the blob's presence, not its text.
 7. Expect up to about 8 days before it appears in Vector.
 
 ## Build setup to reuse: crankshift/origram
@@ -34,5 +36,6 @@ The approval bot on submission#1865 warned about a blank description. In submiss
 - R8 with a keep rule; `packaging.merges` covers `META-INF/xposed/*`.
 - CI: `.github/workflows/build.yml` runs on push and PR. `release.yml` triggers on a tag. It checks the tag against the APK, pins the signing certificate's SHA-256 and requires a CHANGELOG section. It then releases to both repos and syncs `modules-repo/` to the org repo. Secrets: keystore (base64), store password, `MODULES_REPO_TOKEN` (classic PAT, `public_repo`).
 - The tag-triggered path of `release.yml` has never run; only a manual dry run has.
+- A dry run's "Check Modules Repo access" step calls the API on the store repo (the org repo), which the submission form creates, so a dry run cannot pass before the module has been submitted and the invite accepted (found 2026-10-17 by reading this module's `release.yml`; not run).
 
 Fermata has no Gradle or CI: one Java class, `build.sh`, hand-written `de.robv` stubs, and the legacy manifest metadata. Only its publishing approach is worth copying.

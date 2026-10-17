@@ -1,0 +1,48 @@
+# Niagara Private Space
+
+An Xposed module for [Niagara Launcher](https://play.google.com/store/apps/details?id=bitpit.launcher) that lets it place **private apps** (apps in Android's Private Space) the way it places personal apps: in favorites, in folders and pop-ups, and as Niagara-button actions.
+
+Full description, source and issue tracker: [crankshift/niagara-private-space](https://github.com/crankshift/niagara-private-space).
+
+## What it does
+
+Niagara can already store, show and launch private apps in all those places. It only blocks them in its menus and app pickers. This module lifts that block, and hides private apps again while Private Space is locked. It is written against Niagara 1.16.32's code and checked by unit tests; none of it has run on a phone yet.
+
+- A private app's long-press menu offers what a work app's offers (Favorite, Edit pop-up and so on).
+- The pickers for favorites, folders, pop-ups, Niagara-button actions, music apps, hidden apps, Leisure Apps and the notification summary list private apps.
+- Suggestions, app shortcuts and the Add shortcut screen include private apps.
+- While Private Space is locked, its apps are hidden from the home page, from folders and pop-ups (which show "Unlock Private Space to see your apps" instead) and from the pickers' lists of chosen apps. Nothing stored is removed.
+- Tapping a locked private app (the Niagara button, for example) brings up Android's unlock screen and opens the app once Private Space is unlocked.
+- If a Niagara update means the module no longer recognises the code it changes, it changes nothing, and tells you once per Niagara version with a tip on Niagara's home page (or a Toast).
+
+There is no settings screen, no toggle and no launcher icon: the module is on when Niagara is in its scope.
+
+## Requirements
+
+- Root and [Vector](https://github.com/JingMatrix/Vector/releases) v2.2 or newer (libxposed API 101+). The original LSPosed is not supported.
+- Android 15 or newer, with Niagara Launcher using Android's built-in Private Space (not Samsung Secure Folder or other vendor vaults).
+
+Last tested Niagara version: none yet. It is built against Niagara 1.16.32 (1638) and has not been tested on a phone yet.
+
+## Install
+
+### With Obtainium
+
+[![Get it on Obtainium](https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.github.crankshift.niagaraprivatespace%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FXposed-Modules-Repo%2Fio.github.crankshift.niagaraprivatespace%22%2C%22author%22%3A%22crankshift%22%2C%22name%22%3A%22Niagara%20Private%20Space%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5E%5C%5C%5C%5Cd%2B-%28.%2B%29%24%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%241%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22about%5C%22%3A%5C%22Xposed%20module%20that%20lets%20Niagara%20Launcher%20place%20private%20apps%20in%20favorites%2C%20folders%20and%20pop-ups.%5C%22%7D%22%7D)
+
+### By hand
+
+1. Open the [latest release](https://github.com/Xposed-Modules-Repo/io.github.crankshift.niagaraprivatespace/releases/latest) and download the APK.
+2. Tap the downloaded file and allow the install.
+
+Once the store has caught up with a release (about 8 days), the module is also listed in the module repository built into Vector.
+
+## Enable
+
+1. Open the Vector manager, find **Niagara Private Space** in the module list and switch it on.
+2. Open the module's scope and tick Niagara (`bitpit.launcher`).
+3. Force-stop Niagara and open it again.
+
+## License
+
+[GPL-3.0](https://github.com/crankshift/niagara-private-space/blob/main/LICENSE). Not affiliated with Niagara Launcher.

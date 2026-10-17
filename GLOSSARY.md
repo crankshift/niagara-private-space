@@ -142,3 +142,20 @@ _Avoid_: feature flag, plugin
 The finder's list of which hooks were found. The decision module turns it into activate or don't.
 _Avoid_: scan result
 
+### Releasing
+
+**Store repo**:
+The repo under the Xposed Modules Repo organization that Vector's store lists the module from (`Xposed-Modules-Repo/io.github.crankshift.niagaraprivatespace`). The store's submission form creates it. The release workflow copies the store page and each release's APK into it. The store leaves out a repo whose GitHub description is blank, so it must read "Niagara Private Space". The workflow's `MODULES_REPO` variable, its "Modules Repo" step names and the `MODULES_REPO_TOKEN` secret keep Origram's name for it.
+_Avoid_: org repo, mirror
+
+**Store page**:
+What the store shows for the module: `README.md`, `SUMMARY`, `SOURCE_URL` and `SCOPE`, kept in `modules-repo/` and never with a `HIDE` file. Its README names the last Niagara version the module was tested with.
+_Avoid_: store description, store files
+
+**Release key**:
+The module's own signing key, kept outside the repo. Installed copies accept updates only from the same key, and the release workflow refuses an APK whose certificate is not the one pinned as `CERT_SHA256`.
+_Avoid_: upload key, signing certificate
+
+**Dry run**:
+A manual run of the release workflow that builds and checks the signed APK without publishing anything.
+_Avoid_: test release
