@@ -26,6 +26,10 @@ _Avoid_: business app, managed app
 The state of Private Space in which its apps are paused and must not be visible. Its opposite is **unlocked**.
 _Avoid_: quiet mode, paused, disabled
 
+**Available**:
+Private Space is available when it is unlocked and its apps can start. Android announces this a moment after the unlock, and the module opens the pending app then.
+_Avoid_: accessible, ready
+
 ### Niagara
 
 **Favorites**:
@@ -81,6 +85,14 @@ An app's position in favorites, a folder or a pop-up, or as a Niagara-button act
 _Avoid_: entry, spot, slot, item
 
 ### The module
+
+**Pending app**:
+The private app the user tapped while Private Space was locked. The module sends the unlock request and opens the app itself once Private Space is available. It is forgotten when it opens, when another tap replaces it or opens something else, when Private Space locks again, when the unlock request fails, and after a minute.
+_Avoid_: queued app, deferred launch
+
+**Unlock request**:
+The module's call asking Android to unlock Private Space, which brings up Android's credential screen. The request itself says nothing about the outcome.
+_Avoid_: unlock call, unlock intent
 
 **Decision module**:
 The pure Kotlin part of the module that holds every decision, without Android, Niagara or Xposed types. The unit tests exercise it.

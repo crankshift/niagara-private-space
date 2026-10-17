@@ -13,8 +13,10 @@ enum class PickerRule {
 }
 
 /**
- * Every decision the module makes, in its own vocabulary. Nothing here knows about Android, Niagara or
- * Xposed, so the hook adapters only translate Niagara's objects into these inputs and apply the answers.
+ * Every stateless decision the module makes, in its own vocabulary. Nothing here knows about Android, Niagara or
+ * Xposed, so the hook adapters only translate Niagara's objects into these inputs and apply the answers. The one
+ * decision that remembers something between calls, what a tap on a locked private app is waiting for, is the
+ * class [PendingApp].
  */
 object Decisions {
     /**

@@ -149,6 +149,7 @@ These come from Niagara 1.16.32 (versionCode 1638); see the research notes.
 - **Unlock:**
   - The module calls Android's quiet-mode request for the private user directly, with Niagara's own unlock path as a fallback. It works only while Niagara is the foreground default launcher, which is always the case for these taps.
   - The variant that also starts an app needs a system permission. So the module remembers the pending app, opens it itself when Private Space becomes available, and forgets it if the unlock is cancelled.
+  - **Result (ticket 06, 2026-10-17):** Android sends no signal when the user backs out of the unlock screen, so the pending app is forgotten when a second tap replaces it, when Private Space locks again, and after a minute. The module opens it on `PROFILE_ACCESSIBLE` (the user is running and unlocked), and on `PROFILE_AVAILABLE` only if the user is already unlocked. Niagara's own unlock path is not built as a fallback: it ends in the same framework call, so it cannot succeed where the direct call is refused. All of it is unverified on LineageOS 24.
 - **Launch interception** hooks the single Niagara method that starts apps. That covers Niagara-button tap and swipe-up actions, favorites, pop-ups and search.
 
 ### Publishing and release

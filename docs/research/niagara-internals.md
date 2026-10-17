@@ -457,3 +457,11 @@ Checked 2026-10-17 on the 1638 dexdump and the jadx tree.
 - **Lock and the missing-app ageing.** The "Unverified" note under (e) about `getActivityList` while locked was settled by a short lock on 2026-10-17, according to the spec; a lock of days is not covered (see the optional step in `docs/device-check.md`).
 - **Suggestions refill.** Hiding locked favorites frees room under the suggestion section's cap of eight rows, so other (non-private) suggestions can appear while Private Space is locked. Harmless.
 
+## Launch and unlock, as built for ticket 06
+
+Checked 2026-10-17 on the 1638 dexdump and the jadx tree, and against the SDK's `android.jar` (API 37).
+
+- **The launch method** is `AAqdJflv6N9m3Mj.ULNuaNwRhnIuhgDeV52bYgCY7E(launcher, View, row, Bundle)V`, the only caller of `LauncherApps.startMainActivity` in the dex. Before it launches it records the launch with `YWlkXh9CRmXR4Z.S6IAQ(item.FcT8…)` and afterwards calls `ZFV8X6OyWGv.S6IAQ(…)`; both are skipped when the module takes over a tap on a locked private app.
+- **What the launch method reads.** The component name is the one `ComponentName` field it reads (`XVYC3fHMxlmXmjh.S6IAQ…`, in a holder of component and user), and the holder is the field of `AAqdJflv6N9m3Mj` of that holder's type (`LymwWLwVTddmNDuus7mlek0`). Each is the only match in the dexdump.
+- **Two broadcasts, not one.** `Intent.ACTION_PROFILE_AVAILABLE` ("quiet mode ended") and `Intent.ACTION_PROFILE_ACCESSIBLE` ("running and unlocked") both exist in the SDK, with `ACTION_PROFILE_UNAVAILABLE` and `ACTION_PROFILE_INACCESSIBLE` as their opposites. The research above named only `PROFILE_AVAILABLE`, which Niagara listens to. The module opens the pending app on `PROFILE_ACCESSIBLE`, because only then can the private user's apps start. AOSP `UserManagerService.broadcastProfileAvailabilityChanges` sends the availability pair (lines 1789–1817 of the copy in `/tmp/aosp-ref`); where the accessibility pair is sent was not checked in source, and which of the two Android delivers on LineageOS 24 is unverified.
+

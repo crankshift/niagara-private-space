@@ -21,6 +21,14 @@ class Installer(
 
             // The hooks that hide private apps again come first; the ones that let them in follow.
             HomeRowHooks.install(hooks, flags, methods(Hook.FAVORITES_ROWS) + methods(Hook.OTHER_HOME_ROWS))
+            // It lets nothing in and hides nothing, so its place in this order does not matter.
+            LaunchHooks(flags, ModuleLog(xposed))
+                .install(
+                    hooks,
+                    launch = method(Hook.APP_LAUNCH),
+                    target = field(Hook.LAUNCH_TARGET),
+                    component = field(Hook.LAUNCH_COMPONENT),
+                )
 
             OptionsHooks.install(hooks, flags, method(Hook.LONG_PRESS_OPTIONS))
             OptionsHooks.installSheet(hooks, constructor(Hook.OPTIONS_SHEET))

@@ -39,6 +39,15 @@ enum class Hook {
 
     /** The other sections of the home page, built the same way: most-used suggestions and the media section. */
     OTHER_HOME_ROWS,
+
+    /** The method that opens an app of another profile. In the 1638 bytecode every way of opening an app reaches it. */
+    APP_LAUNCH,
+
+    /** The field of an app item that holds what to launch: its component and its user. */
+    LAUNCH_TARGET,
+
+    /** The component name inside [LAUNCH_TARGET], which the module needs to open the app itself. */
+    LAUNCH_COMPONENT,
 }
 
 /** What the finder located in Niagara: the hooks it found, and nothing about the ones it did not. */

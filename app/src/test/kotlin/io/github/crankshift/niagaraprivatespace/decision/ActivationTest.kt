@@ -22,6 +22,9 @@ class ActivationTest {
             Hook.ADD_SHORTCUT_ITEMS,
             Hook.FAVORITES_ROWS,
             Hook.OTHER_HOME_ROWS,
+            Hook.APP_LAUNCH,
+            Hook.LAUNCH_TARGET,
+            Hook.LAUNCH_COMPONENT,
         )
 
     @Test
@@ -76,5 +79,6 @@ class ActivationTest {
         assertTrue(line.contains("PRIMARY_USER_FLAG"), line)
         assertTrue(line.contains("PICKER_FILTER_OVERRIDES"), line)
         assertTrue(line.contains("ADD_SHORTCUT_ITEMS"), line)
+        assertTrue(line.contains("APP_LAUNCH"), line)
     }
 }

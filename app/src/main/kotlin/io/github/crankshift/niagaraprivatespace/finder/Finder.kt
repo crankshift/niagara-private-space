@@ -71,6 +71,13 @@ class Finder(
             favoritesProvider?.let { attempt("other home page row providers") { findOtherRowProviders(itemBase, it) } }
         otherProviders?.let { methods[Hook.OTHER_HOME_ROWS] = it }
 
+        val launch = attempt("app launch method") { findAppLaunch() }
+        launch?.let { methods[Hook.APP_LAUNCH] = listOf(it) }
+        launch?.let { attempt("what the app launch method launches") { findLaunchFields(it) } }?.let {
+            fields[Hook.LAUNCH_TARGET] = it.holder
+            fields[Hook.LAUNCH_COMPONENT] = it.component
+        }
+
         return Resolved(methods, fields)
     }
 
@@ -211,6 +218,32 @@ class Finder(
             .ifEmpty { error("other home page row providers matched nothing") }
     }
 
+    /**
+     * The method of the app item class that starts apps of other profiles with `LauncherApps.startMainActivity`. In
+     * the 1638 bytecode it is the only method that calls it, and the Niagara button, favorites, pop-ups and search
+     * all open apps through it.
+     */
+    private fun findAppLaunch(): MethodData =
+        bridge.findMethod { matcher { addInvoke(START_MAIN_ACTIVITY) } }.exactlyOne("app launch method")
+
+    /**
+     * What `startMainActivity` is given: the launch method reads a component name from a small holder (component
+     * and user) that the app item keeps in a field of its own. So the component is the only `ComponentName` the
+     * launch method reads, and the target is the one field of the launch method's class that holds that component's
+     * declaring class.
+     */
+    private fun findLaunchFields(launch: MethodData): LaunchFields {
+        val read = launch.usingFields.filter { it.usingType.isRead() }.map { it.field }
+        val component =
+            read.filter { it.typeName == "android.content.ComponentName" }.distinct()
+                .exactlyOne("component name the launch method reads")
+        val holder =
+            read.filter {
+                it.declaredClassName == launch.declaredClassName && it.typeName == component.declaredClassName
+            }.distinct().exactlyOne("field that holds the component name's owner")
+        return LaunchFields(holder, component)
+    }
+
     private fun MethodData.isBaseOf(filters: List<MethodData>) =
         filters.any { other -> other != this && other.declaredClass.extends(declaredClass) }
 
@@ -220,12 +253,18 @@ class Finder(
     private fun FieldData.isBooleanOf(itemBase: ClassData) = declaredClassName == itemBase.name && typeName == "boolean"
 
     private companion object {
+        const val START_MAIN_ACTIVITY =
+            "Landroid/content/pm/LauncherApps;->startMainActivity(" +
+                "Landroid/content/ComponentName;Landroid/os/UserHandle;Landroid/graphics/Rect;Landroid/os/Bundle;)V"
+
         const val SHORTCUT_CONFIG_ACTIVITIES =
             "Landroid/content/pm/LauncherApps;->" +
                 "getShortcutConfigActivityList(Ljava/lang/String;Landroid/os/UserHandle;)Ljava/util/List;"
     }
 
     private class ProfileFlags(val primaryUser: FieldData, val privateSpace: FieldData)
+
+    private class LaunchFields(val holder: FieldData, val component: FieldData)
 
     /** The only element. A fingerprint must match exactly once, so none or several is an error. */
     private fun <T> List<T>.exactlyOne(what: String): T =
