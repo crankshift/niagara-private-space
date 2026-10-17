@@ -130,7 +130,7 @@ The module has four parts. Only the first holds decisions.
 
 ### Activation rule
 
-- **Essential hooks:** the long-press menu gate, the picker filters, the favorites rendering filter, the folder and pop-up row filter, and the launch interception. If any essential hook is missing, the module activates **nothing** and notifies. Lifting the blocks without being able to hide locked private apps would leak them.
+- **Essential hooks:** the long-press menu gate, the picker filters (and the picker row step that keeps locked private apps out of the lists of apps already chosen), the favorites rendering filter, the folder and pop-up row filter, and the launch interception. If any essential hook is missing, the module activates **nothing** and notifies. Lifting the blocks without being able to hide locked private apps would leak them.
 - **Optional parts:**
   - The folder and pop-up **unlock message row**. If it's missing, private apps hide without a message.
   - The **tip system**. If it's missing, the notice falls back to a Toast.

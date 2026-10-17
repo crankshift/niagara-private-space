@@ -49,6 +49,8 @@ class Finder(
                     family.filter { it in flags.primaryUser.readers }.exactlyOne("Leisure Apps picker filter")
                 }
             leisureApps?.let { methods[Hook.PICKER_FILTER_LEISURE_APPS] = listOf(it) }
+            attempt("picker row step") { findPickerRow(itemBase, pickerBase) }
+                ?.let { methods[Hook.PICKER_ROW] = listOf(it) }
             val overrides = family.filter { it != leisureApps }
             if (overrides.isEmpty()) onError("picker filter overrides", IllegalStateException("matched nothing"))
             else methods[Hook.PICKER_FILTER_OVERRIDES] = overrides
@@ -161,6 +163,20 @@ class Finder(
                 it.paramTypeNames == listOf(itemBase.name) &&
                 it.declaredClassName != itemBase.name
         }
+
+    /**
+     * Every picker adds the row of an app to its list with one static method of the picker base class, which takes
+     * the picker, the list being built, and the app as its first three parameters. It serves the candidates and the
+     * apps already chosen alike. In the 1638 bytecode it is the only static method of that shape in the class.
+     */
+    private fun findPickerRow(itemBase: ClassData, pickerFilter: MethodData): MethodData {
+        val picker = checkNotNull(pickerFilter.declaredClass) { "picker base class is unknown" }
+        return picker.methods.filter {
+            Modifier.isStatic(it.modifiers) && it.returnTypeName == "void" &&
+                it.paramTypeNames.size >= 3 && it.paramTypeNames[0] == picker.name &&
+                it.paramTypeNames[2] == itemBase.name
+        }.exactlyOne("row step of the picker base class")
+    }
 
     /**
      * Niagara suggests the apps you use most below favorites. The check that admits an app to those suggestions

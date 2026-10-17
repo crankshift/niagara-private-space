@@ -35,6 +35,13 @@ enum class Hook(val optionalPart: OptionalPart? = null) {
     /** The Leisure Apps picker's filter, which also asks for a personal app. */
     PICKER_FILTER_LEISURE_APPS,
 
+    /**
+     * The step that adds the row of one app to a picker's list, for the apps already chosen as well as for the
+     * candidates. The pickers draw their current selection straight from the stored lists, so hiding a locked
+     * private app there needs this step, not the filter.
+     */
+    PICKER_ROW,
+
     /** The check that keeps private apps out of the most-used suggestions below favorites. */
     SUGGESTION_ELIGIBILITY,
 

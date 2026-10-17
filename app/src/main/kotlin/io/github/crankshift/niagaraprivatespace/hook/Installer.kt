@@ -23,7 +23,8 @@ class Installer(
             check(ItemFlags.canWriteFinalFields()) { "this runtime does not let reflection write final fields" }
             val flags = ItemFlags(field(Hook.PRIMARY_USER_FLAG), field(Hook.PRIVATE_SPACE_FLAG))
 
-            // The hooks that hide private apps again come first; the ones that let them in follow.
+            // The hooks that hide private apps again come first; the ones that let them in follow (the picker row
+            // step, which also hides, goes with the pickers it belongs to).
             HomeRowHooks.install(hooks, flags, methods(Hook.FAVORITES_ROWS) + methods(Hook.OTHER_HOME_ROWS))
             // It lets nothing in and hides nothing, so its place in this order does not matter.
             val launches = LaunchHooks(flags, log)
@@ -57,6 +58,7 @@ class Installer(
                 filters = methods(Hook.PICKER_FILTER) + methods(Hook.PICKER_FILTER_OVERRIDES),
                 leisureAppsFilter = method(Hook.PICKER_FILTER_LEISURE_APPS),
             )
+            PickerHooks.installRows(hooks, flags, method(Hook.PICKER_ROW))
             ListingHooks.installSuggestions(
                 hooks,
                 flags,

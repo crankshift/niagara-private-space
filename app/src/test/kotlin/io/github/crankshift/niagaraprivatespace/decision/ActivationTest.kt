@@ -16,6 +16,7 @@ class ActivationTest {
             Hook.PICKER_FILTER,
             Hook.PICKER_FILTER_OVERRIDES,
             Hook.PICKER_FILTER_LEISURE_APPS,
+            Hook.PICKER_ROW,
             Hook.SUGGESTION_ELIGIBILITY,
             Hook.SUGGESTION_ITEM,
             Hook.OPTIONS_SHEET,
