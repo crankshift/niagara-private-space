@@ -56,7 +56,7 @@ In the order that works. Steps marked (09) are in ticket 09 with their commands;
 
 ### Release, 2026-10-17
 
-Done on the user's request ("i want release", then "do whats nesusary to create fucking release"), without the device check.
+Done on the user's request to release now, without the device check.
 
 - **Pushed** `main` to `crankshift/niagara-private-space`; the Build workflow passed. Before the push, every tracked file and the whole history were searched for paths of this Mac and for secrets: none (only `~/…` paths in instructions; `local.properties` and build output are ignored).
 - **Submission.** The submission bot (`src/bot.ts` and `src/index.ts` in Xposed-Modules-Repo/submission) approves `[submission] io.github.<username>.*` from that user as soon as the issue is opened, and creates the store repo with no files and no description; the issue body is not used. #2193 was approved within a minute.
