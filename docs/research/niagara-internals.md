@@ -195,3 +195,216 @@ Niagara's dismissable home-screen tips can be reused, but only by borrowing an e
 - **Fallbacks:**
   - Niagara's own dialog `hjSzsYhD7GJxr0IoZ8ztrSGH.qxwCegY8aElo6DGrOJdOOl3e`, with builder `mcZgStaicQbyH99InXxEbNZjK6vgM`. It's more fragile: it runs through coroutines and takes default-argument masks.
   - A plain Toast. Niagara has no Snackbar.
+
+## Locked-state UI hooks
+
+Checked 2026-10-17 against the same 1.16.32 / 1638 tree. Framework behaviour is taken from AOSP `main` (fetched from android.googlesource.com into `/tmp/aosp-ref/`), not from the phone's LineageOS 24 build. Lines marked "AOSP" or "unverified" need a check on the device.
+
+### Building blocks shared by all five items
+
+- **How to tell a locked private item.** Don't use `shouldBeHiddenEverywhere` (`U2m3eJXDAz.InBLWr22CpY()`) on its own. It means `isPrivateSpace && !isActive`, and an App is inactive whenever any of flags 128, 256, 1024 or 8192 is set. On this phone most private apps have flag 128 (suspended by root), so the getter is true for them **even while Private Space is unlocked**. Use `item.JivfzRelv6lvjdmUmyDxa && privateProfileInQuietMode` instead. The second part is `UserManager.isQuietModeEnabled(privateUser)` or Niagara's `GIMQ3HGidL8HUz6rU0DZZV5VKZ2gf.MSIC9osuP4uEvtwoX8Ls()`. For App items, `(AAqdJflv6N9m3Mj.MUf8FpkRe6c & 1024) != 0` gives the same answer; `MUf8FpkRe6c` is the flags field that `cNZSwVhgw3bj87Y()` masks with 9600.
+- **Items are immutable snapshots.** The fields of `AAqdJflv6N9m3Mj` are final. Locking or unlocking runs `hKms7hC9dI3Pvae`, which sets or clears flag 1024 and so produces new item instances.
+  - Every feed swaps the new instances in: `kwpCNXnI9hAtHMzdAza1dSx.S6IAQCLljUFq4a51beP6ri(Set,Set,Set)`, line 57.
+  - The home page receives the changed set in `MOctxdZAQ6hZ.S6IAQCLljUFq4a51beP6ri(Set,Set,Set)`, line 312.
+  - Items are compared by id (`U2m3eJXDAz.equals`), not by instance.
+
+  As a result, a filter applied while rendering runs again on every lock change, with no extra wiring.
+- **Never filter the feed objects; filter only the rows that get rendered.** Any edit writes the feed contents back to the `Feed` table (`jITGD5xX7idP.oxtZuOAT85CRE5mHS8QhcvJYV` → `bscGd6DHAcw6NpYRID6mLD0P`). If private items were removed from a `kwpCNX…` list, their rows would be deleted for good.
+- **How rows are built.** Every list (home, all apps, pop-ups) is a RecyclerView made of Views, not Compose.
+  - Rows extend `B9zGC8TUdjpfkuyD` (`toString` `"Hsi(v=ViewType(value=…"`). On a row, `oPDb6Z177Hc5VQA2DsMW4sume(holder)` binds, `w2Vmv4h09bCLYbaCMjXej4UT8ig(launcher, holder, view)` handles a click, and `LCedKJPufl5CNh(…, holder, view)` handles a long press.
+  - One view-holder factory serves every list: `ubmKlkaTNDK.S6IAQCLljUFq4a51beP6ri(viewType, parent, …)`.
+  - App rows are `iCGfF43vNUxiruOZg3ze` (`toString` `"Iihsi(i="`); their field `InBLWr22CpY` holds the item.
+  - The `launcher` passed to click methods is the `ZFV8X6OyWGv` instance.
+
+### 1. Hide locked private apps from favorites
+
+**Verdict: straightforward.**
+
+- **Where the list is built.**
+  - The home page is `MOctxdZAQ6hZ`. It extends the list-page base `gn0reobn9PUJUfMhB5UWke4gAmKv` and watches feeds `{4, 6, 9, 1, 7, 10, 11, 5}` (line 55).
+  - Its row list `BAMV7IJGaZ7NApujltQtFHXDR` is built from scratch by `mGz9jlkOfqfyxUtEPeq2xbdIN(boolean)` (line 584) and updated item by item by the method `mNpUVZNXiGnHL2PBGAfwsz3M(Collection)` (line 660).
+  - Both loop over three section objects. They are held in the field of the same name, `mNpUVZNXiGnHL2PBGAfwsz3M`, and share the base class `lz52wt20HhAYu7RtBmmeYY`.
+  - For each item they call `pTm4A75ae4760qpkoAJylH5XGIQ7(section, item)` (line 862), which calls `section.JYS5UmjqF9G0tu10FGEt(item)`. If that returns null, the full build skips the row and the incremental update removes it.
+  - The three sections:
+    - `AE2p6j3B0dXc1aDntWXLI` is the media section (row kind 10).
+    - **`ERSwXVDPQC31V89EIE` is favorites and wraps feed 4.** Its `JYS5UmjqF9G0tu10FGEt(item)` (line 15) logs `"requestHsi: %s index: %s"`. It returns null if the item isn't in feed 4. Otherwise it returns `new JHHu6NDaJMWholqg7b(0, 11, feedIndex, item, …)`: view type 0 (`home_tile_default`), row kind 11, sorted by the item's index in the feed.
+    - `rb6tIkUr06qHHxyZ3roP2299jJq0` is most-used suggestions (row kind 13): feed 6 minus feed 4, at most 8 rows.
+- **How locked private apps look today.** This comes from the code; I haven't seen it on the device.
+  - They show as ordinary favorites rows. The label is unchanged and the **icon is greyed out**.
+  - The icon path is `AAqdJflv6N9m3Mj.gb8Ti3xtLlUZ7FMQBPq` → `UFrPni1ntXYKJaAguWIdelrJ8vVFw.S6IAQCLljUFq4a51beP6ri`. At line 59 that calls `drawable.S6IAQCLljUFq4a51beP6ri(item.cNZSwVhgw3bj87Y())`.
+  - `i6mVpHINrC5t1z4gKLMJtV.S6IAQCLljUFq4a51beP6ri(false)` applies the ColorMatrix from `EllHuScbQ8oh6drtuqd9fH5U` case 10: saturation 0 and RGB scaled by 0.5.
+  - I found no dimming of the label in the row binder (`iCGfF43vNUxiruOZg3ze.oPDb6Z177Hc5VQA2DsMW4sume`).
+  - Tapping still tries to launch the app (see item 4).
+  - Root suspension (flag 128) greys this phone's private apps even while Private Space is unlocked.
+- **Hook: an after-hook on `ERSwXVDPQC31V89EIE.JYS5UmjqF9G0tu10FGEt(item)`.** If the item is a locked private item, set the result to null.
+  - This covers the first build, incremental updates and lock/unlock changes.
+  - It touches neither the favorites editor nor the DB.
+  - Folders are Shortcut items owned by the primary user, so they are never hidden.
+  - Gaps in the feed indexes are harmless because rows are sorted with the comparator `BMbeto36oYbZk`.
+- **DexKit anchors:** the method with `usingStrings("requestHsi: %s index: %s")`, which is the only one in the dex. Its parameter type is the item base class. Its return type is the home row class `JHHu6NDaJMWholqg7b`.
+
+### 2. Folders and pop-ups: hide private apps and add an unlock row
+
+**Verdict: possible but fragile.** Filtering the rows is simple. The extra row has to borrow an existing row class, because a module can't subclass Niagara's obfuscated row base from its own class loader.
+
+- **Folders and pop-ups share one implementation.**
+  - Folders are `uDqjucuiv9L8` items of type 3 (`ULNuaNwRhnIuhgDeV52bYgCY7E`, line 184). Both they and app pop-ups open through the static method `m286sjorFJB.mZcY0deygk6u3(manager, host, launcher, row, view)` (line 29).
+  - That method builds `gcZiy9TwlTwZ`, the only pop-up controller. It sets `q6GDDRWaiG40m = "popup"` and contains the error string `"Popups can only be shown inside PopupDialogHosts"`.
+  - The views are bound by `PFJK7adz8XdunnDNZfa` from layout `popup_dialog`, whose `R.id.recycler_view` is a RecyclerView. It is not Compose.
+- **How the content is built.**
+  - `PskLZXQFY5DQLPMH.x84QUk1KZDQn9Oaki3QtLcQFH19KN(host, cont)` (line 744, a suspend function) loads the items:
+    - Folders and action items: the host's type-1 feed.
+    - App hosts without flag 4096: the app's deep shortcuts as well.
+
+    The result is stored in `gcZiy9TwlTwZ.Nwc69xS7qC5SA1NCRAW9m3R`.
+  - **`gcZiy9TwlTwZ.myg4xWl4jc7ydenlyX4YW()`** (line 597, signature `()ArrayList`) turns that collection into rows: either `hIcfUC0Zhx` or its subclass `kHgU41mpJYiavM1clRp2`, which also shows a notification. `hIcfUC0Zhx` uses view type 47 (`popup_tile_default`) and the sort key `Mc0hzz07iIHSIkCTZvQ9HEWMCC7uq(3, index, 4, 0)`.
+  - The rows go to `WqSpbqcSfgIDD5GcS2VOTd.Sg107GnZGk9KhAtv(widgetRow, itemRows, notificationRows)` (line 59), which passes them to a sorted adapter. If everything is empty, it shows the fixed empty-state row instead (line 74).
+  - `myg4x…()` is the only row builder, whichever way the pop-up is filled:
+    - first display (lines 303–465);
+    - a notification refresh (`LCedKJPufl5CNh`);
+    - a feed refresh: `dNFMiwZEuo9Ffgr4ZVOa` case 5, started from `gcZiy9TwlTwZ.oxtZuOAT85CRE5mHS8QhcvJYV` when the host's type-1 feed changes.
+- **Today,** locked private apps show as ordinary pop-up rows with greyed icons, through the same icon path as favorites. Tapping them tries to launch them (see item 4).
+- **Hook 1, the filter: an after-hook on `gcZiy9TwlTwZ.myg4xWl4jc7ydenlyX4YW()`.** Remove rows whose `iCGfF43vNUxiruOZg3ze.InBLWr22CpY` is a locked private item.
+- **Hook 2, the extra row.** If any rows were removed, append one marker row.
+  - **The donor class is `SC5C9fM6MDiATyqqWpPGHl6A`,** the pop-up's own empty-state row.
+    - Its constructor is `(itemBase host, kTFwF1y7rMXtRP5GeY9zDF8hak8o notifRepo)`.
+    - It uses view type 50 (`popup_tile_empty_state`): a centred `Text.Secondary` TextView `header_text_view` on a ripple background. Its holder is `LyL6014v1HRMU`, whose field `rI081ztdGp2Ah` is that TextView.
+    - It has the fixed id `412316860418L` and the sort key `Mc0hzz07…(4, 0, 6, 0)`. So it sorts after the app rows, which are in section 3.
+  - Build it with `(gcZiy.mGe4G6pRBJSs1GrIePH /* the host */, gcZiy.E8kxVwxqnFT88c3v)`, and keep the instance in a weak identity set.
+  - **Binding:** hook `SC5C9….oPDb6Z177Hc5VQA2DsMW4sume(holder)`. For marker instances, set the text ("Unlock Private Space to see your apps") and skip the original method.
+  - **Clicks:** hook `SC5C9….w2Vmv4h09bCLYbaCMjXej4UT8ig(launcher, holder, view)`. For marker instances, start the unlock (item 3).
+    - Clicks do reach this method: `ubmKlkaTNDK` registers click listeners for view type 50, and `yoVdwFMC8PI5JR` (the base class of `WqSpbq…`) passes the click on to `row.w2Vmv4h…(launcher, …)` (in `z980KXEmDIlcwTHyeDEpOq1lRCKN`, case 5).
+  - **Long press:** on the donor row, `LCedKJPufl5CNh` opens the pop-up editor for the host. Leave it as it is or suppress it.
+  - The marker can't clash with Niagara's own empty-state row, which is only shown when the list is empty; the marker makes the list non-empty.
+- **After unlocking (inferred).**
+  - `hKms7…` changes the items, the host's type-1 feed swaps them in (`kwpCNX….ursJAofciE(list, true)`), and `gcZiy.oxtZuOAT85…` reloads the pop-up through case 5.
+  - The filter now lets the apps through and adds no marker.
+  - **Unverified:** whether the pop-up stays open while ConfirmDeviceCredential covers HomeActivity. If it closes, the user simply reopens it.
+- **Why it is fragile.**
+  - In the jadx output, the variant field `InBLWr22CpY` of `SC5C9…` is set to 0 for both constructors, which looks like a decompiler artifact. On the device, check that an instance built with the two-argument constructor takes the empty-state branch, or always skip the original bind method for markers.
+  - The sort-key class and the fixed id are implementation details that can change.
+  - Message-hub pop-ups (action 34) use a different empty-state row: `S0bE6peMMTjNrmFr5bN`, view type 80, with the same id 412316860418L.
+- **DexKit anchors.**
+  - **Controller:** the class with `usingStrings("Popups can only be shown inside PopupDialogHosts")` (it also uses `"popup"`). In it, the method with no parameters that returns `java.util.ArrayList`.
+  - **Donor row:** the class with a method that has `usingNumbers(412316860418L)` and also uses the resource id of `R.string.pop_up_empty_state`, resolved at runtime. `S0bE6…` shares the number but not the string. The class has a two-parameter constructor whose first parameter is the item base class.
+  - **Row base methods, by signature:** the abstract bind `(holderBase)V` and the click `(launcherIface, holderBase, View)V`.
+
+### 3. The unlock call
+
+**Verdict: straightforward. Call the framework directly; Niagara's wrapper can be reused if needed.**
+
+- **Niagara's chain.**
+  - When Private Space is locked, `wc9ii3Nltew959oWw` adds the section header to the all-apps list. The header is action item 30 (`L2xwse7AF7diDQfniAObAGTfxccU`), with analytics key `"private_space_unlock"`, label `R.string.unlock_private_space` and icon `ic_ip_act_lock_open`. Action 31 is "lock", 32 is "settings" and 33 is "install".
+  - Its click handler, `L2xw….ULNuaNwRhnIuhgDeV52bYgCY7E`, calls **`ZFV8X6OyWGv.mZcY0deygk6u3(Boolean.FALSE, PRIVATE_SPACE)`** (line 156), a plain `void` method that launches a coroutine. From there:
+    1. `Doeh9A5xDrvo5HMupKmJsn`, case 7;
+    2. `MQsblrH1MD9ZYSx.gBppIyS9iwNrDwNPE9sGWiCc(registry, errUi, errReporter, Boolean, kind, cont)`, which catches `SetQuietModeException` and shows Niagara's error UI;
+    3. `GIMQ3HGidL8HUz6rU0DZZV5VKZ2gf.myg4xWl4jc7ydenlyX4YW(Boolean, kind, cont)`, a suspend function that throws for the primary user and below Android 9;
+    4. off the main dispatcher (inferred), the lambda `bhy75HKiWNVJcn4MG` calls **`UserManager.requestQuietModeEnabled(false, user)`** for every profile of kind PRIVATE_SPACE.
+  - The search entry "Unlock private space" (`uTRxllORq4JEtizXzxiQD4S1MkbQU`) calls the same `MQsbl…` wrapper directly (`sRV210pgJkOc6`, case 4).
+- **After the call, Niagara does nothing itself.** It ignores the return value and doesn't wait.
+  - The UI updates when `PROFILE_AVAILABLE` arrives: `c1f9HeekFzJZbklkcB2` → `hKms7…` clears flag 1024 → the lists rebuild.
+  - The search entry adds one step. Right after the call it scrolls the all-apps list to its last row (action 21, settings), via `bFYO3uFYGyPedDd33U5ZmF3rZ8uYX.mZcY0deygk6u3(item, list)`. That is where the private section will appear.
+- **Framework rules (AOSP `UserManagerService`).**
+  - Niagara has neither `MODIFY_QUIET_MODE` nor `MANAGE_USERS`. `requestQuietModeEnabled(false, privateUser)` is allowed only because Niagara is the foreground default launcher (`ensureCanModifyQuietMode`). So make the call while HomeActivity is resumed, for example from a click.
+  - For a profile with `authAlwaysRequiredToDisableQuietMode` (true here), it starts ConfirmDeviceCredential and **returns false**. The profile starts after the user authenticates.
+  - The overload that takes an `IntentSender target`, which would launch something after unlocking, requires `MANAGE_USERS`. Niagara can't use it, so "unlock, then launch" has to be done by the module.
+- **Recommendation: call the framework directly.**
+  - Find the private profile the way Niagara does: go through `UserManager.getUserProfiles()` and pick the profile for which `LauncherApps.getLauncherUserInfo(u).getUserType()` is `"android.os.usertype.profile.PRIVATE"`.
+  - Then call `requestQuietModeEnabled(false, user)` and catch `SecurityException`. It is one binder call, so the main thread is fine.
+  - That is three lines with no obfuscated dependencies.
+  - Reusing `ZFV8X6OyWGv.mZcY0deygk6u3` is the fallback, for when the module already holds the launcher object (every click hook receives it) and wants Niagara's error dialog. Its enum argument is `hE1r6UMnZ5lo8vIKm6.Maiu1xWivs2Pl`; find the constant by its name, `"PRIVATE_SPACE"`.
+- **DexKit anchors for the wrapper:** the class with `usingStrings("open_action_item")` (it also uses `"bitpit.launcher.key.HIDE_PRIVATE_SPACE"`); in it, the method taking `(java.lang.Boolean, <profile enum>)` and returning void.
+
+### 4. Niagara button (feeds 10 and 11), and any tap on a locked private app
+
+**Verdict: straightforward.** It takes one launch hook, plus a pending-launch helper in the module.
+
+- **What happens today.**
+  - **Tap:** `MOctxdZAQ6hZ.Sg107GnZGk9KhAtv(View)` (line 342) reads the first item of feed 10 and calls `U2m3eJXDAz.xXleTt96TbxvixkKaSOY8aqVQs5L(item, launcher, view, null, 12)`, which calls `item.ULNuaNwRhnIuhgDeV52bYgCY7E(…)`.
+  - **Swipe up:** `MOctxdZAQ6hZ.iFQzqlZm1M(FloatingActionButton, float)` (line 518) does the same with feed 11 and the same static helper. It first checks for Pro and otherwise shows the dialog `"niagara_button_swipe_pro"`.
+  - Neither path checks whether the app is active or locked.
+  - The button shows an icon-pack glyph (`w37b4qe5Lc1SRS0P6oRn.mZcY0deygk6u3`), not the greyed app icon.
+  - For an App, `AAqdJflv6N9m3Mj.ULNuaNwRhnIuhgDeV52bYgCY7E` (line 73) calls `LauncherApps.startMainActivity(component, privateUser, bounds, opts)` (line 86). Only if that throws does it show the toast `error_app_not_available` (line 92).
+  - What the framework does with it (AOSP):
+    - `LauncherAppsService.startActivityAsUser` doesn't check quiet mode.
+    - `ActivityStartInterceptor.interceptQuietProfileIfNeeded` redirects the launch to `UnlaunchableAppActivity`.
+    - `UnlaunchableAppActivity` **finishes immediately for any profile that isn't a managed (work) profile**; its log message says "called for a non-managed-profile".
+
+    So the tap **silently does nothing**. Unverified on LineageOS 24. Taps on locked private apps in favorites, folders, pop-ups and search behave the same way.
+- **Hook: a before-hook on `AAqdJflv6N9m3Mj.ULNuaNwRhnIuhgDeV52bYgCY7E(launcher, view, row, bundle)`.** If `this` is a locked private item:
+  1. Start the unlock (item 3).
+  2. Remember the component and user from the field `LymwWLwVTddmNDuus7mlek0` (`XVYC3fHMxlmXmjh`: `.S6IAQ…` is the ComponentName, `.QCgZq9…` the UserHandle).
+  3. Skip the original method.
+
+  This one hook covers the button, favorites (if they aren't hidden), pop-ups and search.
+- **Launching afterwards.**
+  - Register a receiver with Niagara's context for `Intent.ACTION_PROFILE_AVAILABLE` (API 35+; Niagara also registers for it, in `aqwafnQ2sdQfHwxEb1`), and match `EXTRA_USER`.
+  - When it arrives, call `LauncherApps.startMainActivity(component, user, null, null)` on the main thread.
+  - Drop the pending launch after a timeout, on the next `PROFILE_UNAVAILABLE`, or when the user cancels.
+  - Niagara is the home app and is back in front after the credential screen, so background-launch limits shouldn't block the launch (unverified).
+- **DexKit anchors.**
+  - **Launch method:** the only method in the dex that calls `android.content.pm.LauncherApps#startMainActivity` (match with `invokeMethods`).
+  - **Button methods,** only needed for behaviour specific to the button: the class with `usingStrings("updateHome with ", "AtAGlanceHsi not found, hsiList size: ")`. The swipe method takes a `FloatingActionButton` parameter and uses `"coin_flipped"`.
+
+### 5. Widgets from private apps
+
+**Verdict: not feasible from inside Niagara.** AOSP's widget service refuses Private Space widget providers to a launcher running in the parent user. It would take an additional hook in system_server, which would be fragile.
+
+- **How Niagara hosts widgets.**
+  - **Classes:**
+    - `dAdtYU8sqdkZ7XkIoP7wEiGoyKLs extends AppWidgetHost`, with host id **4354**;
+    - the host view `bk5t8GFSiLR7An extends AppWidgetHostView`, plus `cbLpEB5YrC678gjFEc`, a placeholder used while the view is deferred;
+    - `cD1RRoz9pWprj3r8J8JD1lE48z`, which manages widgets and their storage.
+  - **Rows:** rows of the `Widget` table load as `hqnHp1ofHs9LuDUBfLe`. The user comes from the row's serial number, as for Apps. In the flags field `ldxl6vaCmxIjgB1`, 128 means "hosted in a pop-up"; 256 and the low 6 bits are restore states (inferred from the view chooser).
+  - **Locking has no effect on Niagara's side.** Widget items never become inactive (the base `cNZSwVhgw3bj87Y()` returns true), and `hKms7…` doesn't touch Widget rows.
+  - **Choosing the view:** `Sbh8OzlPn74fRThXc859FSDhQNS3X.FcT8vexLQsFH8TD9PCCur(widget)` (`toString` `"Wvh(i="`) picks the view for a widget:
+    - flags & 256: the loading view `D79l4i9CKLQ`;
+    - flags & 63: the "Tap to restore" view `XUxPEFyJuS` (layout `widget_could_not_be_restored`);
+    - `getAppWidgetInfo(id)` is null, or the provider doesn't match: the loading view **plus a restore coroutine**, `hvUajZaEhulfdFU7hMaAPpH3HtL`, which sets flag 256 and binds the widget again;
+    - otherwise: the live `bk5t8…` view from `createView`.
+  - **Cleanup:** `cD1RRoz….ursJAofciE()` deletes host widget ids that have no row in the DB.
+- **What blocks private widget providers.**
+  - **In Niagara,** the picker coroutine `XoYnnUj9fSu` (its default case):
+    1. gets the providers from `cD1RRoz….qxwCegY8aElo6DGrOJdOOl3e(null, true)` (line 619), which calls `getInstalledProvidersForProfile` for every profile;
+    2. wraps each one in `KO684KCEFfCiDTCrQIufIPRxpJoR`, a class used only by the picker, whose label comes from `PackageManager.getUserBadgedLabel`;
+    3. at line 108, skips any provider whose `JivfzRelv6lvjdmUmyDxa` (isPrivateSpace) is set.
+
+    To bypass it, add an after-hook on the `KO684…` constructor that clears that final field on the new instance. This writes a final instance field through reflection, which is still unverified on ART.
+  - **The framework blocks it anyway** (AOSP `AppWidgetServiceImpl`).
+    - Both `getInstalledProvidersForProfile` and `bindAppWidgetId` require `SecurityPolicy.canAccessProvider(pkg, profileId)`.
+    - For a profile other than the caller's, that requires the package to be on `DevicePolicyManagerInternal.getCrossProfileWidgetProviders(profileId)`.
+    - `DevicePolicyManagerService` returns an empty list when the profile has no profile owner, and Private Space has none.
+    - So the provider list for user 10 comes back empty, and binding fails. The work profile can differ, because Intune may allowlist providers.
+    - Lifting the block needs a hook in system_server (`AppWidgetServiceImpl$SecurityPolicy.canAccessProvider`), meaning a second module scope, `android`. That is outside this research.
+- **If private widgets were present, this is what locking would do (AOSP).**
+  - `onUserStopped` keeps the providers; the code comment says hosts show the widgets masked while the user is stopped.
+  - `maskWidgetsViewsLocked` sends the host `work_widget_mask_view`, which shows the app icon and a badge. Tapping it opens `UnlaunchableAppActivity`, which does nothing for a private profile.
+  - A placeholder can be built inside Niagara:
+    - add an after-hook on `Sbh8….FcT8vexLQsFH8TD9PCCur(widget)`;
+    - for a private widget while locked, either lay a clickable TextView over the returned host view, or substitute an `XUxPEFyJuS` and rewrite its text in an after-hook on `XUxPEFyJuS.JYS5UmjqF9G0tu10FGEt(widget)`.
+  - The system removes the mask on unlock, so the module only has to remove its overlay on `PROFILE_AVAILABLE`.
+  - **Risk (unverified):** after a reboot, Private Space's credential-encrypted storage is locked. If `getAppWidgetInfo` then returns null, Niagara's restore coroutine would start rewriting the private Widget row, and the module would have to stop it.
+- **DexKit anchors.**
+  - `Sbh8…`: `usingStrings("Widget frame must not have more than one widget view child.")`.
+  - Picker coroutine: `usingStrings("org.kustom.widget", "com.weawow")`.
+  - Provider class: constructor `(int, AppWidgetProviderInfo, …)` that calls `PackageManager.getUserBadgedLabel`.
+  - Host: the class that extends `android.appwidget.AppWidgetHost`.
+  - Restore placeholder: the class that uses the resource ids of `widget_could_not_be_restored` and `backup_tap_to_restore`.
+
+### Summary
+
+| Item | Verdict | Hook point | Main DexKit anchor |
+|---|---|---|---|
+| 1 Favorites | Straightforward | after `ERSwXVDPQC31V89EIE.JYS5UmjqF9G0tu10FGEt(item)` → null | `"requestHsi: %s index: %s"` |
+| 2 Folders and pop-ups | Possible but fragile | after `gcZiy9TwlTwZ.myg4xWl4jc7ydenlyX4YW()`, plus bind and click hooks on donor row `SC5C9fM6MDiATyqqWpPGHl6A` | `"Popups can only be shown inside PopupDialogHosts"`; `412316860418L` + `pop_up_empty_state` |
+| 3 Unlock | Straightforward | framework `requestQuietModeEnabled(false, user)`; fallback `ZFV8X6OyWGv.mZcY0deygk6u3(FALSE, PRIVATE_SPACE)` | `"open_action_item"` |
+| 4 Niagara button and taps | Straightforward | before `AAqdJflv6N9m3Mj.ULNuaNwRhnIuhgDeV52bYgCY7E`, plus a `PROFILE_AVAILABLE` receiver that launches the app | sole caller of `LauncherApps.startMainActivity` |
+| 5 Widgets | Not feasible from inside Niagara (framework allowlist) | only with a system_server hook; then an overlay via `Sbh8….FcT8vexLQsFH8TD9PCCur` | `"Widget frame must not have more than one widget view child."` |
+
+**Still unverified:**
+
+- Every AOSP-based claim, on LineageOS 24: the silent no-op when tapping a locked private app, the cross-profile widget allowlist, and widget masking.
+- Whether pop-ups survive the credential screen.
+- Which branch the two-argument `SC5C9…` constructor takes.
+- Whether reflection can write the final field.
+- Whether `getAppWidgetInfo` returns null after a reboot while Private Space is locked.

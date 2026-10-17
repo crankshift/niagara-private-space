@@ -45,5 +45,5 @@ The app the Niagara button opens on tap or on swipe up.
 _Avoid_: gesture, button shortcut
 
 **Placement**:
-An app's position in favorites, a folder or a pop-up, or as a Niagara-button action. Also a widget's position on the home screen.
+An app's position in favorites, a folder or a pop-up, or as a Niagara-button action.
 _Avoid_: entry, spot, slot, item
