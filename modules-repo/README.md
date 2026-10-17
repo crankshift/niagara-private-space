@@ -22,7 +22,7 @@ There is no settings screen, no toggle and no launcher icon: the module is on wh
 - Root and [Vector](https://github.com/JingMatrix/Vector/releases) v2.2 or newer (libxposed API 101+). The original LSPosed is not supported.
 - Android 15 or newer, with Niagara Launcher using Android's built-in Private Space (not Samsung Secure Folder or other vendor vaults).
 
-Last tested Niagara version: none yet. It is built against Niagara 1.16.32 (1638) and has not been tested on a phone yet.
+Last tested Niagara version: 1.16.32 (1638), on Android 17, for the long-press menu and the favorites editor's list only. The rest has not run on a phone yet.
 
 ## Install
 

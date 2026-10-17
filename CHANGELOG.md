@@ -22,4 +22,4 @@ There is no settings screen, no toggle and no launcher icon: the module is on wh
 - Android 15 or newer
 - Niagara Launcher, with apps in Android's built-in Private Space
 
-Built against Niagara 1.16.32 (1638); not yet tested on a phone.
+Built against Niagara 1.16.32 (1638). On a phone (Android 17), only the long-press menu and the favorites editor's list have been checked so far.
