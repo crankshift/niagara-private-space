@@ -151,6 +151,26 @@ PREFS=/data/data/bitpit.launcher/shared_prefs/niagara_private_space.xml
 
 What this proves: that Niagara's tip system accepts the tip the module registers (built with Niagara's factory, from a provider and callbacks that are dynamic proxies); that the dismiss and button callbacks remove it; that mask 210 gives the text, button and icon intended; and that the preferences file lives in Niagara's data and is never read by Niagara. None of it has run on a phone.
 
+## Release build
+
+Run it once before every release. Every section above uses the debug build, and the release build is minified by R8, which can remove or rename code the debug build keeps, so a missing keep rule would show only here. The release is built from the same source as the one CI publishes, with the release key from `~/.gradle/gradle.properties`.
+
+```sh
+./gradlew assembleRelease
+adb shell pm list packages $M          # then, if it is listed: adb uninstall $M (a release build cannot go over a debug build)
+adb install app/build/outputs/apk/release/app-release.apk
+adb shell "$VECTOR modules enable $M"
+adb shell "$VECTOR scope add $M $P/0"
+adb logcat -c
+adb shell am force-stop $P
+adb shell input keyevent KEYCODE_HOME
+adb logcat -d -s NiagaraPrivateSpace
+```
+
+1. The log line is the one under "Expected log line" (`active`, the same found list, `17 hooks installed`). If it says `inactive`, or a `finding the … failed` line appears that the debug build did not have, the minified build lost something: stop, record the line, and fix the keep rule before releasing.
+2. Do the steps of "Add a private app to favorites from its long-press menu" once more with this build.
+3. Reinstalling the debug build afterwards (`./gradlew installDebug`) needs the release build uninstalled first.
+
 ## Expected log line
 
 On Niagara 1.16.32 (1638) with the pickers in place (ticket 03) the module should log `active` with `PICKER_FILTER_OVERRIDES=3` and `6 hooks installed`: the options builder, the base picker filter, three picker filter overrides and the Leisure Apps filter. After the suggestion and shortcut hooks (ticket 04) the totals become `PICKER_FILTER_OVERRIDES=3` and `9 hooks installed`: the six above plus the suggestion check, the options sheet and the Add shortcut screen's items. After the home page rows (ticket 05) they become `OTHER_HOME_ROWS=2` and `12 hooks installed`: the favorites rows, the suggestions rows and the media rows. After the app launch hook (ticket 06) it is `13 hooks installed`. After folders and pop-ups (ticket 07) it is `16`: the row builder, and the bind and click methods of the unlock message row. The picker row step, added after ticket 07, makes it `17`. The found list names every piece that resolved, fields included (the tip system's too: `TIP_MANAGER`, `TIP_REGISTER`, `TIP_FACTORY`, `TIP_HOME_PAGE`, `TIP_PAUSED` and `TIP_FACTORY_INSTANCE`): `APP_LAUNCH`, `LAUNCH_TARGET`, `LAUNCH_COMPONENT`, `FOLDER_AND_POP_UP_ROWS`, `FOLDER_AND_POP_UP_ROW_ITEM`, `EMPTY_POP_UP_ROW`, `EMPTY_POP_UP_ROW_BIND`, `EMPTY_POP_UP_ROW_CLICK`, `EMPTY_POP_UP_ROW_TEXT`, `POP_UP_HOST`, `POP_UP_NOTIFICATIONS` and `PICKER_ROW`. If a Niagara update takes the unlock message row away, the line still starts with `active` and ends the found list with `; without UNLOCK_MESSAGE_ROW (missing: …)`, and the count is two lower. A lost tip system shows the same way (`; without TIP_SYSTEM (missing: …)`), and costs no hook while the module is active. If the unlock message row was found but could not be installed, the line ends `; UNLOCK_MESSAGE_ROW left out at install` instead, after a warning that says why. The tip system adds no hooks while the module is active. When the module is inactive the only hook it installs is on the tip manager's constructor. Later tickets add hooks; their device-check sections say what the totals become.

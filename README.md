@@ -6,7 +6,7 @@ Niagara can already store, show and launch private apps in all those places. It 
 
 It is not affiliated with Niagara Launcher.
 
-**Status: written, not released, and not yet run on a phone.** All of this is in the code, checked by unit tests and by reading Niagara 1.16.32's code, and none of it has run in Niagara yet:
+**Status: not released yet, and not yet run on a phone.** All of this is in the code, checked by unit tests and by reading Niagara 1.16.32's code, and none of it has run in Niagara yet:
 
 - A private app's long-press menu offers what a work app's offers (Favorite, Edit pop-up and so on).
 - The favorites, folder, pop-up, Niagara-button, music, hide-apps, Leisure Apps and notification-summary pickers list private apps.
@@ -26,9 +26,16 @@ Built against Niagara 1.16.32 (1638). It has not been tested on a phone yet; the
 
 ## Install
 
-1. Install the APK.
-2. Enable the module in the Vector manager with Niagara (`bitpit.launcher`) in its scope.
-3. Force-stop Niagara and open it again.
+From the first release on, there are three ways to get the module:
+
+- **Vector's module store.** Search for Niagara Private Space in the Vector manager. The store can take about 8 days to follow a release.
+- **The release APK.** Each release has its APK attached, in this repo and in the [store repo](https://github.com/Xposed-Modules-Repo/io.github.crankshift.niagaraprivatespace/releases/latest).
+- **From source**, as under Build below. Android only updates an app with a copy signed by the same key, so a copy you build (signed with your own key: the debug key, unless you set one up as `AGENTS.md` describes) cannot update a released one: uninstall one before installing the other.
+
+Then:
+
+1. Enable the module in the Vector manager with Niagara (`bitpit.launcher`) in its scope.
+2. Force-stop Niagara and open it again.
 
 There is no settings screen, no toggle and no launcher icon: the module is on when Niagara is in its scope.
 

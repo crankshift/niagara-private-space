@@ -24,9 +24,9 @@ Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents
 
 `crankshift/niagara-private-space` is the source of truth. The store repo (`Xposed-Modules-Repo/io.github.crankshift.niagaraprivatespace`) is only a store page, filled by `.github/workflows/release.yml` from `modules-repo/`.
 
-1. Offer the user the device check (below). It is optional and needs their go-ahead, and the store page names the Niagara version it last passed with.
+1. Offer the user the device check (below). It is optional and needs their go-ahead, its last section runs the signed, minified release build, and the store page names the Niagara version it last passed with.
 2. Bump `versionCode` and `versionName` in `app/build.gradle.kts`, and add a `## <versionName>` section to `CHANGELOG.md`; its last line names the Niagara version the release was built against or tested with.
-3. Update the store page in `modules-repo/` (README.md, SUMMARY) when features or the tested Niagara version change; its README names that version. Never add a `HIDE` file there.
+3. Update the store page in `modules-repo/` (README.md, SUMMARY) when features or the tested Niagara version change; its README names that version, and so do the root `README.md`'s status line and Requirements paragraph. Never add a `HIDE` file there.
 4. Commit and push, then push the tag `<versionCode>-<versionName>`: `git tag 2-0.2.0 && git push origin 2-0.2.0`. The workflow refuses a tag that doesn't match the APK, an APK not signed with the module's key (the certificate's SHA-256 is pinned as `CERT_SHA256` in `release.yml`), or a version with no changelog section. If it refuses, delete the tag (`git push origin :2-0.2.0 && git tag -d 2-0.2.0`), fix the problem, and tag again.
 
 `gh workflow run release.yml` runs the same checks without publishing (the dry run). Its store-access check needs the store repo to exist, and the store creates it from the submission form. The workflow uses three repo secrets: `NIAGARAPS_KEYSTORE_BASE64`, `NIAGARAPS_STORE_PASSWORD` and `MODULES_REPO_TOKEN`. `MODULES_REPO_TOKEN` is a classic PAT with only `public_repo`, because fine-grained tokens can't reach an org repo you only collaborate on (Origram's experience; not yet tried for this store repo). It expires, so when "Check Modules Repo access" fails, the owner generates a new token and replaces the secret.
