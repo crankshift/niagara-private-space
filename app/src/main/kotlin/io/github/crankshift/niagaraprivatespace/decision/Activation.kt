@@ -10,6 +10,12 @@ enum class OptionalPart {
      * it, private apps hide without a message.
      */
     UNLOCK_MESSAGE_ROW,
+
+    /**
+     * Niagara's own tips, shown on its home page, which the module borrows to tell the user about an unsupported
+     * Niagara version. Without it, the notice is a Toast.
+     */
+    TIP_SYSTEM,
 }
 
 /**
@@ -92,6 +98,24 @@ enum class Hook(val optionalPart: OptionalPart? = null) {
 
     /** The field of the pop-up controller that holds the notifications Niagara hands to its rows. */
     POP_UP_NOTIFICATIONS(OptionalPart.UNLOCK_MESSAGE_ROW),
+
+    /** The constructor of Niagara's tip manager, the object that holds the tips the home page shows. */
+    TIP_MANAGER(OptionalPart.TIP_SYSTEM),
+
+    /** The tip manager's method that adds or removes a tip of a given type, answered by a provider. */
+    TIP_REGISTER(OptionalPart.TIP_SYSTEM),
+
+    /** The static method that builds a tip from a message, a button, an icon and two callbacks. */
+    TIP_FACTORY(OptionalPart.TIP_SYSTEM),
+
+    /** The tip manager's field for the home page that shows its tips, empty until the home page is up. */
+    TIP_HOME_PAGE(OptionalPart.TIP_SYSTEM),
+
+    /** The tip manager's flag that the home page is paused, during which it shows no tips. */
+    TIP_PAUSED(OptionalPart.TIP_SYSTEM),
+
+    /** The home page's field that holds the factory, which the notice needs to build its tip. */
+    TIP_FACTORY_INSTANCE(OptionalPart.TIP_SYSTEM),
 }
 
 /** What the finder located in Niagara: the hooks it found, and nothing about the ones it did not. */
@@ -102,9 +126,24 @@ data class Activation(val found: List<Hook>, val missing: List<Hook>) {
     /** The module changes Niagara only when every essential hook was found. */
     val active: Boolean get() = missing.none { it.optionalPart == null }
 
-    /** The optional parts whose hooks were all found. None while the module is inactive. */
+    /**
+     * The optional parts whose hooks were all found. An inactive module changes nothing, so it uses none of its parts
+     * to change Niagara; the notice about an unsupported version uses the tip system all the same.
+     */
     val availableParts: Set<OptionalPart>
-        get() = if (active) OptionalPart.entries.filter { missingOf(it).isEmpty() }.toSet() else emptySet()
+        get() = OptionalPart.entries.filter { missingOf(it).isEmpty() }.toSet()
+
+    /** Whether the user should hear that this Niagara is not supported: when the module could not activate. */
+    val notify: Boolean get() = !active
+
+    /**
+     * What this becomes when the hooks could not be installed after all: nothing of the module is left in Niagara, so
+     * it is inactive. The tip system is not part of the module's changes and stays available to the notice.
+     */
+    fun afterFailedInstall(): Activation {
+        val (kept, lost) = found.partition { it.optionalPart == OptionalPart.TIP_SYSTEM }
+        return Activation(found = kept, missing = lost + missing)
+    }
 
     private fun missingOf(part: OptionalPart) = missing.filter { it.optionalPart == part }
 

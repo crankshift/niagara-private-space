@@ -8,44 +8,15 @@ import org.junit.jupiter.api.Test
 class ActivationTest {
     private fun reportOf(vararg found: Hook) = ResolutionReport(found.toSet())
 
-    private val essentialHooks =
-        arrayOf(
-            Hook.LONG_PRESS_OPTIONS,
-            Hook.PRIVATE_SPACE_FLAG,
-            Hook.PRIMARY_USER_FLAG,
-            Hook.PICKER_FILTER,
-            Hook.PICKER_FILTER_OVERRIDES,
-            Hook.PICKER_FILTER_LEISURE_APPS,
-            Hook.PICKER_ROW,
-            Hook.SUGGESTION_ELIGIBILITY,
-            Hook.SUGGESTION_ITEM,
-            Hook.OPTIONS_SHEET,
-            Hook.ADD_SHORTCUT_ITEMS,
-            Hook.FAVORITES_ROWS,
-            Hook.OTHER_HOME_ROWS,
-            Hook.APP_LAUNCH,
-            Hook.LAUNCH_TARGET,
-            Hook.LAUNCH_COMPONENT,
-            Hook.FOLDER_AND_POP_UP_ROWS,
-            Hook.FOLDER_AND_POP_UP_ROW_ITEM,
-        )
-
-    /** The unlock message row: borrowed from Niagara, so a Niagara update may take it away. */
-    private val unlockMessageRowHooks =
-        arrayOf(
-            Hook.EMPTY_POP_UP_ROW,
-            Hook.EMPTY_POP_UP_ROW_BIND,
-            Hook.EMPTY_POP_UP_ROW_CLICK,
-            Hook.EMPTY_POP_UP_ROW_TEXT,
-            Hook.POP_UP_HOST,
-            Hook.POP_UP_NOTIFICATIONS,
-        )
-
-    private val everyHook = essentialHooks + unlockMessageRowHooks
+    private val essentialHooks = HookGroups.essential.toTypedArray()
+    private val unlockMessageRowHooks = HookGroups.unlockMessageRow.toTypedArray()
+    private val tipSystemHooks = HookGroups.tipSystem.toTypedArray()
+    private val everyHook = HookGroups.every.toTypedArray()
 
     @Test
     fun `these lists name every hook the finder can report`() {
-        assertEquals(everyHook.toSet(), Hook.entries.toSet())
+        assertEquals(HookGroups.every.toSet(), Hook.entries.toSet())
+        assertEquals(HookGroups.every.size, Hook.entries.size, "a hook is in two groups")
     }
 
     @Test
@@ -67,8 +38,8 @@ class ActivationTest {
     }
 
     @Test
-    fun `a missing hook of the unlock message row keeps the module active, whichever it is`() {
-        for (missing in unlockMessageRowHooks) {
+    fun `a missing hook of the unlock message row or the tip system keeps the module active, whichever it is`() {
+        for (missing in unlockMessageRowHooks + tipSystemHooks) {
             val activation = Decisions.activation(reportOf(*everyHook.filter { it != missing }.toTypedArray()))
 
             assertTrue(activation.active, "module must stay active without $missing")
@@ -77,22 +48,28 @@ class ActivationTest {
     }
 
     @Test
-    fun `the unlock message row is available only when all its hooks were found`() {
-        assertEquals(setOf(OptionalPart.UNLOCK_MESSAGE_ROW), Decisions.activation(reportOf(*everyHook)).availableParts)
+    fun `an optional part is available only when all its hooks were found`() {
+        val both = setOf(OptionalPart.UNLOCK_MESSAGE_ROW, OptionalPart.TIP_SYSTEM)
+        assertEquals(both, Decisions.activation(reportOf(*everyHook)).availableParts)
 
         for (missing in unlockMessageRowHooks) {
             val activation = Decisions.activation(reportOf(*everyHook.filter { it != missing }.toTypedArray()))
 
-            assertEquals(emptySet<OptionalPart>(), activation.availableParts, "without $missing")
+            assertEquals(setOf(OptionalPart.TIP_SYSTEM), activation.availableParts, "without $missing")
+        }
+        for (missing in tipSystemHooks) {
+            val activation = Decisions.activation(reportOf(*everyHook.filter { it != missing }.toTypedArray()))
+
+            assertEquals(setOf(OptionalPart.UNLOCK_MESSAGE_ROW), activation.availableParts, "without $missing")
         }
     }
 
     @Test
-    fun `no optional part is available when the module is inactive`() {
-        val activation = Decisions.activation(reportOf(*unlockMessageRowHooks))
+    fun `the tip system is available to an inactive module, which is when the notice needs it`() {
+        val activation = Decisions.activation(reportOf(*tipSystemHooks))
 
         assertFalse(activation.active)
-        assertEquals(emptySet<OptionalPart>(), activation.availableParts)
+        assertEquals(setOf(OptionalPart.TIP_SYSTEM), activation.availableParts)
     }
 
     @Test

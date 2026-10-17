@@ -12,6 +12,15 @@ enum class PickerRule {
     PERSONAL_APPS_ONLY,
 }
 
+/** How the user is told that this Niagara is not supported. */
+enum class NoticeChannel {
+    /** A dismissable tip on Niagara's home page, in Niagara's own style. */
+    TIP,
+
+    /** A Toast, when Niagara's tip system cannot be used. */
+    TOAST,
+}
+
 /** The rows a folder or pop-up shows, and whether the unlock message goes below them. */
 data class FolderContents<Row>(val rows: List<Row>, val showUnlockMessage: Boolean)
 
@@ -93,4 +102,18 @@ object Decisions {
         val missing = Hook.entries.filter { it !in report.found }
         return Activation(found = found, missing = missing)
     }
+
+    /**
+     * Whether to tell the user that this Niagara is not supported: when the module could not activate, and not
+     * already for this Niagara version ([lastNotifiedVersionCode], null if never). A new version is told again.
+     */
+    fun noticeDue(activation: Activation, niagaraVersionCode: Long, lastNotifiedVersionCode: Long?): Boolean =
+        activation.notify && lastNotifiedVersionCode != niagaraVersionCode
+
+    /** A tip in Niagara's own style if its tip system was found, otherwise a Toast. */
+    fun noticeChannel(activation: Activation): NoticeChannel =
+        if (OptionalPart.TIP_SYSTEM in activation.availableParts) NoticeChannel.TIP else NoticeChannel.TOAST
+
+    fun noticeText(niagaraVersionName: String): String =
+        "Niagara Private Space doesn't support Niagara $niagaraVersionName yet"
 }

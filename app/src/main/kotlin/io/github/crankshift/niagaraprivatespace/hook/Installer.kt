@@ -8,7 +8,10 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 
-/** Turns what the finder located into installed hooks, or into no hooks at all. */
+/**
+ * Turns what the finder located into installed hooks, or into no hooks at all. It is only run for an active module,
+ * which is what makes [availableParts] mean the parts to install.
+ */
 class Installer(
     private val xposed: XposedInterface,
     private val resolved: Resolved,

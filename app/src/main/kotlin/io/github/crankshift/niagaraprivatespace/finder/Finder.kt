@@ -24,6 +24,17 @@ class Finder(
         val methods = linkedMapOf<Hook, List<MethodData>>()
         val fields = linkedMapOf<Hook, FieldData>()
 
+        // The tip system serves the notice about an unsupported version, so it is looked for even when nothing else
+        // can be found.
+        attempt("tip system") { findTipSystem() }?.let {
+            methods[Hook.TIP_MANAGER] = listOf(it.managerConstructor)
+            methods[Hook.TIP_REGISTER] = listOf(it.register)
+            methods[Hook.TIP_FACTORY] = listOf(it.factory)
+            fields[Hook.TIP_HOME_PAGE] = it.homePage
+            fields[Hook.TIP_PAUSED] = it.paused
+            fields[Hook.TIP_FACTORY_INSTANCE] = it.factoryInstance
+        }
+
         val itemBase = attempt("item base class") { findItemBase() }
         val optionsBuilder = itemBase?.let { attempt("long-press options builder") { findOptionsBuilder(it) } }
         optionsBuilder?.let { methods[Hook.LONG_PRESS_OPTIONS] = listOf(it) }
@@ -338,6 +349,56 @@ class Finder(
     /** The fields a method reads, in the order it reads them. */
     private fun MethodData.fieldsRead(): List<FieldData> = usingFields.filter { it.usingType.isRead() }.map { it.field }
 
+    /**
+     * Niagara's tips. A tip is an instance of the class whose `toString` is `Thsi{tt=`. One static method
+     * builds it from a message, a button, an icon and two callback interfaces (its dismiss and click). Its constructor
+     * takes the tip manager, which is the one parameter type with a void method that takes an enum (the tip type)
+     * and an interface (the provider that answers whether to show a tip and builds it). That enum is the one whose
+     * constants are Niagara's tip types; it must hold the name [BorrowedTip.TYPE_NAME]. The manager's two other
+     * fields are the home page it tells about tips (null until the home page exists) and a paused flag; the
+     * notice waits until the first is set and the second is clear. The home page holds the factory in the only field
+     * of the factory's type.
+     */
+    private fun findTipSystem(): TipSystem {
+        val tip = bridge.findClass { matcher { usingStrings("Thsi{tt=") } }.exactlyOne("tip class")
+        val factory =
+            bridge.findMethod { matcher { returnType(tip.name) } }.filter {
+                Modifier.isStatic(it.modifiers) && it.paramTypeNames.size == 9 &&
+                    it.paramTypeNames[0] == it.declaredClassName &&
+                    it.paramTypeNames[3] == "java.lang.CharSequence" && it.paramTypeNames[8] == "int" &&
+                    it.paramTypes[6].isInterface() && it.paramTypes[7].isInterface()
+            }.exactlyOne("tip factory")
+        val constructor = tip.methods.filter { it.isConstructor }.exactlyOne("constructor of the tip class")
+        val managers =
+            constructor.paramTypes.mapNotNull { type -> findTipRegister(type)?.let { type to it } }
+        val (manager, register) = managers.exactlyOne("tip manager")
+        val tipTypes = checkNotNull(register.paramTypes[0]) { "tip type unknown" }
+        check(tipTypes.methods.any { BorrowedTip.TYPE_NAME in it.usingStrings }) {
+            "the tip types lack ${BorrowedTip.TYPE_NAME}"
+        }
+        val managerConstructor = manager.methods.filter { it.isConstructor }.exactlyOne("tip manager constructor")
+        val paused = manager.fields.filter { it.typeName == "boolean" }.exactlyOne("paused flag of the tip manager")
+        val homePage =
+            manager.fields.filter { it.typeName != "boolean" && !it.typeName.startsWith("java.") }
+                .exactlyOne("home page field of the tip manager")
+        val factoryInstance =
+            checkNotNull(homePage.type) { "home page type unknown" }.fields
+                .filter { it.typeName == factory.declaredClassName }
+                .exactlyOne("field of the home page that holds the tip factory")
+        return TipSystem(managerConstructor, register, factory, homePage, paused, factoryInstance)
+    }
+
+    /** The tip manager's registration method: void, taking the tip type (an enum) and the provider (an interface). */
+    private fun findTipRegister(candidate: ClassData): MethodData? =
+        candidate.methods.filter {
+            !it.isConstructor && it.returnTypeName == "void" && it.paramTypeNames.size == 2 &&
+                it.paramTypes[0].isEnum() && it.paramTypes[1].isInterface()
+        }.singleOrNull()
+
+    private fun ClassData.isInterface() = Modifier.isInterface(modifiers)
+
+    private fun ClassData.isEnum() = modifiers and ACC_ENUM != 0
+
     private fun MethodData.isBaseOf(filters: List<MethodData>) =
         filters.any { other -> other != this && other.declaredClass.extends(declaredClass) }
 
@@ -347,6 +408,8 @@ class Finder(
     private fun FieldData.isBooleanOf(itemBase: ClassData) = declaredClassName == itemBase.name && typeName == "boolean"
 
     private companion object {
+        const val ACC_ENUM = 0x4000
+
         /** The fixed id of the empty-state rows of a pop-up and of the message hub. */
         const val EMPTY_STATE_ROW_ID = 412316860418L
 
@@ -360,6 +423,15 @@ class Finder(
     }
 
     private class ProfileFlags(val primaryUser: FieldData, val privateSpace: FieldData)
+
+    private class TipSystem(
+        val managerConstructor: MethodData,
+        val register: MethodData,
+        val factory: MethodData,
+        val homePage: FieldData,
+        val paused: FieldData,
+        val factoryInstance: FieldData,
+    )
 
     private class LaunchFields(val holder: FieldData, val component: FieldData)
 

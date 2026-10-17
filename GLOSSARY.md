@@ -64,6 +64,14 @@ _Avoid_: recommendations, most-used row
 A shortcut an app offers for one of its actions, such as "New chat". It can be pinned to favorites or the app list.
 _Avoid_: deep link, quick action
 
+**Tip**:
+A dismissable card on Niagara's home page, in Niagara's own style, with a message, a button and an icon. Niagara registers tips with its tip manager by type.
+_Avoid_: banner, notification
+
+**Tip system**:
+Niagara's tip manager and what the module needs from it to show one tip: the manager's constructor, its registration method, the factory that builds a tip, and three fields (the home page, a paused flag, the home page's factory). It is an optional part: without it the notice is a Toast.
+_Avoid_: tip engine
+
 **Long-press options**:
 The menu Niagara shows when the user long-presses an app, folder or shortcut. Niagara's code calls it the options sheet.
 _Avoid_: context menu, popup menu
@@ -90,6 +98,10 @@ _Avoid_: entry, spot, slot, item
 
 ### The module
 
+**Notice**:
+What the module tells the user when it does not support their Niagara version: "Niagara Private Space doesn't support Niagara <version> yet". It is a borrowed tip, or a Toast when Niagara's tip system cannot be used, and it is shown once per Niagara version.
+_Avoid_: warning, alert
+
 **Unlock message**:
 The row a folder or pop-up shows below its other apps while Private Space is locked, in place of its private apps. It reads "Unlock Private Space to see your apps", and tapping it sends the unlock request. It is built from Niagara's own row for an empty pop-up, so a Niagara update can take it away; the private apps then hide without a message.
 _Avoid_: placeholder, banner
@@ -101,6 +113,10 @@ _Avoid_: queued app, deferred launch
 **Unlock request**:
 The module's call asking Android to unlock Private Space, which brings up Android's credential screen. The request itself says nothing about the outcome.
 _Avoid_: unlock call, unlock intent
+
+**Debug switch**:
+One of two Android system properties, read once when Niagara starts and off unless set to `1`, that make the module pretend its code or Niagara's tip system is missing, so the notice can be seen on the phone without a Niagara update.
+_Avoid_: debug flag, test mode
 
 **Decision module**:
 The pure Kotlin part of the module that holds every decision, without Android, Niagara or Xposed types. The unit tests exercise it.

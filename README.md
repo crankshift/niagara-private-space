@@ -6,7 +6,16 @@ Niagara can already store, show and launch private apps in all those places. It 
 
 It is not affiliated with Niagara Launcher.
 
-**Status: work in progress, not released.** Written so far, and not yet run on a phone: the long-press menu of a private app offers what a work app's offers (Favorite, Edit pop-up and so on), and the favorites, folder, pop-up, Niagara-button, music, hide-apps, Leisure Apps and notification-summary pickers list private apps. Suggestions, app shortcuts and the Add shortcut screen are written too. Locked private apps are also hidden from the home page. Still to come: folders and pop-ups while locked, unlocking from a tap, and the notice for unsupported Niagara versions.
+**Status: written, not released, and not yet run on a phone.** All of this is in the code, checked by unit tests and by reading Niagara 1.16.32's code, and none of it has run in Niagara yet:
+
+- A private app's long-press menu offers what a work app's offers (Favorite, Edit pop-up and so on).
+- The favorites, folder, pop-up, Niagara-button, music, hide-apps, Leisure Apps and notification-summary pickers list private apps.
+- Suggestions, app shortcuts and the Add shortcut screen include private apps.
+- While Private Space is locked, its apps are hidden from the home page, from folders and pop-ups (which show "Unlock Private Space to see your apps" instead) and from the pickers' lists of chosen apps. Nothing stored is removed.
+- Tapping a locked private app (the Niagara button, for example) brings up Android's unlock screen and opens the app once Private Space is unlocked.
+- If a Niagara update means the module no longer recognises the code it changes, it changes nothing, and tells you once per Niagara version with a tip on Niagara's home page (or a Toast).
+
+Still to come: the release pipeline and the first release.
 
 ## Requirements
 

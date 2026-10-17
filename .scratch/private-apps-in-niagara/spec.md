@@ -127,6 +127,7 @@ The module has four parts. Only the first holds decisions.
    - Otherwise as a Toast.
    - Always with a Vector log line.
    - The last Niagara versionCode notified is stored in a module-owned preferences file inside Niagara's data, never in Niagara's own keys.
+   - **Result (ticket 08, 2026-10-17):** the tip is registered only once the home page is up, because a provider that fails to build crashes it; the tip type is looked up by its name string, since its field is obfuscated; the notice also covers a finder that could not run, and hooks that could not be installed. See `docs/research/niagara-internals.md`.
 
 ### Activation rule
 
