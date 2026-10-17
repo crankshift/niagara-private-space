@@ -14,7 +14,7 @@ VECTOR="su -c /data/adb/modules/zygisk_vector/cli"   # run through: adb shell "$
 
 ## Set up
 
-1. **Connect.** The phone appears in `adb devices`.
+1. **Connect.** The phone appears in `adb devices`. If it is listed twice (Wi-Fi debugging can do that), set `ANDROID_SERIAL` to one of the two; Gradle's `installDebug` honours it too.
 2. **Note Niagara's version.**
    ```sh
    adb shell dumpsys package $P | grep -E 'versionName|versionCode'
@@ -28,7 +28,7 @@ VECTOR="su -c /data/adb/modules/zygisk_vector/cli"   # run through: adb shell "$
    adb shell input keyevent KEYCODE_HOME
    ```
    A release build signed with the module's release key cannot be installed over a debug build (or the reverse); uninstall the old one first.
-4. **Read the log.** Run `adb logcat -c` before the restart in step 3, then `adb logcat -d -s NiagaraPrivateSpace` (the same line is in the Vector manager's module log). It shows one line like `Niagara 1.16.32 (1638): active, found: …(PICKER_FILTER_OVERRIDES=3); N hooks installed`. On Niagara 1.16.32 the expected counts are listed under "Expected log line" at the end of this file. A line like `Niagara <version>: inactive, missing: …` means a fingerprint no longer matches this Niagara version: stop, record the missing parts, and fix the finder. `finding the … failed` lines above it say why.
+4. **Read the log.** Run `adb logcat -c` before the restart in step 3, then `adb logcat -d -s NiagaraPrivateSpace` (the module writes it through libxposed's `log`; on the test phone logcat's 256 KiB main buffer had dropped it within about six minutes, so read it straight after the restart. `vector-cli log cat` showed the module loading but not this line, checked once; whether the Vector manager's module log holds it is unverified). It shows one line like `Niagara 1.16.32 (1638): active, found: …(PICKER_FILTER_OVERRIDES=3); N hooks installed`. On Niagara 1.16.32 the expected counts are listed under "Expected log line" at the end of this file. A line like `Niagara <version>: inactive, missing: …` means a fingerprint no longer matches this Niagara version: stop, record the missing parts, and fix the finder. `finding the … failed` lines above it say why.
 
 Only tap the screen with `adb shell input tap` after confirming which app is in front (`adb shell dumpsys activity activities | grep -m1 topResumedActivity`).
 

@@ -6,7 +6,7 @@ Full description, source and issue tracker: [crankshift/niagara-private-space](h
 
 ## What it does
 
-Niagara can already store, show and launch private apps in all those places. It only blocks them in its menus and app pickers. This module lifts that block, and hides private apps again while Private Space is locked. It is written against Niagara 1.16.32's code and checked by unit tests; none of it has run on a phone yet.
+Niagara can already store, show and launch private apps in all those places. It only blocks them in its menus and app pickers. This module lifts that block, and hides private apps again while Private Space is locked. It is written against Niagara 1.16.32's code and checked by unit tests; only part of it has run on a phone yet.
 
 - A private app's long-press menu offers what a work app's offers (Favorite, Edit pop-up and so on).
 - The pickers for favorites, folders, pop-ups, Niagara-button actions, music apps, hidden apps, Leisure Apps and the notification summary list private apps.

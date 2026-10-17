@@ -12,7 +12,7 @@ See the spec: `.scratch/private-apps-in-niagara/spec.md`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** done-pending-device-check
+**Status:** done
 
 - [x] **Project:** a Gradle project copied from Origram's setup (Kotlin, AGP 9.4, Gradle 9.7, JDK 21, version catalog), with package `io.github.crankshift.niagaraprivatespace` and display name "Niagara Private Space". It has minimum Android 15, compile and target SDK 37, and no activity or launcher icon.
 - [x] **Module metadata:** libxposed API 102 (minimum 101) with a static scope of only `bitpit.launcher`. R8 keeps the entry point.
@@ -24,7 +24,7 @@ See the spec: `.scratch/private-apps-in-niagara/spec.md`.
 - [x] **CI:** a build workflow runs the build and unit tests on push and PR.
 - [x] **Repo files:** a GPL-3.0 `LICENSE` and a short README.
 - [x] **Device check:** `docs/device-check.md` exists, with steps for this slice (long-press a private app, add it to favorites, open it, see the badge). `AGENTS.md` gains a line saying the device check is optional and an agent must always ask the user before running it.
-- [ ] **On the phone:** a private app is added to favorites through the long-press menu and opens normally, with the user's go-ahead.
+- [x] **On the phone:** a private app is added to favorites through the long-press menu and opens normally, with the user's go-ahead. *(Done 2026-10-17 on the test phone, on the user's request; see "Device check, 2026-10-17" in the notes.)*
 
 ## Notes
 
@@ -43,3 +43,17 @@ Decisions made without the user, each the option closest to the spec and researc
 - **Native libraries.** Only `arm64-v8a` and `x86_64` are packaged (Android 15+ is 64-bit only in practice), and `useLegacyPackaging = true` extracts them so Vector's class loader can find `libdexkit.so` in the module's library directory.
 - **Niagara version in the log line** is read with `getPackageArchiveInfo` on the APK, using the activity thread's system context, because the Application does not exist yet in `onPackageReady`. Failure prints `?`.
 - **Not done here:** release signing (ticket 09). Release builds use the debug key until then.
+
+### Device check, 2026-10-17
+
+Run on the user's request ("connect via adb and test this on device"), with the debug build, Private Space unlocked. It covers "Set up" and "Add a private app to favorites from its long-press menu" in `docs/device-check.md`.
+
+- **Phone and build.** Android 17 (API 37), Niagara 1.16.32 (1638). `./gradlew installDebug`, then the Vector CLI to enable the module and add `bitpit.launcher` to its scope, `am force-stop`, home.
+- **Log line.** `Niagara 1.16.32 (1638): active, found: …` with every hook in the found list resolved, `PICKER_FILTER_OVERRIDES=3, OTHER_HOME_ROWS=2; 17 hooks installed`, as under "Expected log line". No `finding the … failed` line, no module error, no fatal exception. This is the first run of the finder under DexKit anywhere: DexKit's native library loaded on the phone and its fingerprints matched Niagara 1638's real code, which the emulation over `dexdump` had only predicted. Ticket 02's Mac check stays optional.
+- **The menu.** Long-pressing the private app AudioFX (user 10, Private Space badge) in the Private space section offered **Favourite** (Niagara's spelling), App info, Add to category, Hide from app list and Set as music app; under Advanced, **Edit AudioFX pop-up** and Edit icon/name. Choosing Favourite put it at the end of favorites with the badge (the favorites editor showed "11 selected" with it checked), and tapping it opened `org.lineageos.audiofx/.activity.ActivityMusic` in user 10. The long-press menu of that private favorite offered Edit favourites.
+- **The final flag can be written by reflection on ART.** The menu only offers Favourite if the builder saw the flag cleared, and nothing was logged. Seen for the options builder only (the spec's list of unverified items now says so).
+- **Stock behaviour.** The Private space section with its "Lock private space" row and the badged apps is still at the bottom of the app list. The main list's AudioFX has no badge, so it is the personal copy and the private one is not duplicated there. A personal app's menu (Symfonium) is the full one, with Screen time and Uninstall, which a private app's menu lacks; it was not compared with a run without the module.
+- **Undone.** AudioFX was removed through Edit favourites ("10 selected", Done); favorites are back to the original ten.
+- **Also seen, ticket 03.** The favorites editor lists private apps with the Private Space badge next to personal and work apps, and a private app and its personal copy are separate entries (Bitwarden, Brave).
+- **Not checked here:** the other steps of the pickers section, everything with Private Space locked, rebooting, and database reads as root.
+- **Device notes.** `adb devices` listed the phone twice (Wi-Fi debugging), so `ANDROID_SERIAL` was set. A long-press at the very bottom of the screen also starts the system's Google search overlay; use rows higher up. The module's log line was gone from logcat's main buffer within about six minutes, and `vector-cli log cat` never showed it, so "Vector's log gets one line" in the criteria above holds for logcat (tag `NiagaraPrivateSpace`); the Vector manager's own module log was not looked at.

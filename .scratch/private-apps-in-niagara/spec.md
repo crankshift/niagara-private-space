@@ -208,7 +208,7 @@ These come from Niagara 1.16.32 (versionCode 1638); see the research notes.
 - **Unverified, to settle during implementation or the device check:**
   - Android behaviour taken from AOSP source but not checked on LineageOS 24.
   - Whether a pop-up stays open behind the unlock screen.
-  - Whether the final "is Private Space" field can be written by reflection.
+  - Whether the final "is Private Space" field can be written by reflection. **Result (device check, 2026-10-17):** yes, on the test phone: with the module on, a private app's long-press menu offers Favourite, which only happens when the options builder sees the flag cleared, and no error was logged. Seen for the options builder only.
   - Whether Leisure Apps and app-shortcut pinning work for private apps once unblocked.
   - Whether locked private favorites are truly greyed today; the code says so.
 - **Origram's tag-triggered release** has only ever had a manual dry run. This module's first tagged release will be the first real run of that workflow, so watch it.

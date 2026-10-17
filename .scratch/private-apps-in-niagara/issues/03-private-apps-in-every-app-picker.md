@@ -37,3 +37,4 @@ The user can add a private app to a folder or pop-up, set it as a **Niagara-butt
 - **Known limits.**
   - The pop-up and folder editor's filter is also used for private apps' deep shortcuts (`ho3Z3OuW2p`, around the filter calls), so those rows are unblocked there too. Ticket 04 covers shortcuts; the device check does not exercise this yet.
   - The notification-summary picker's "suggested" group (`p673N…WuObUi…`) still requires a primary-user app, so private apps appear in its full list but not in that group.
+- **Device, 2026-10-17 (a first look, not the section).** On the test phone the favorites editor listed private apps with the Private Space badge alongside personal and work apps, with a private app and its personal copy as separate entries (step 1 of "Private apps in every app picker", seen while checking ticket 01). Steps 2 to 10 have not been run, so this ticket stays `done-pending-device-check`.

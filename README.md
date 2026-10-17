@@ -6,7 +6,7 @@ Niagara can already store, show and launch private apps in all those places. It 
 
 It is not affiliated with Niagara Launcher.
 
-**Status: not released yet, and not yet run on a phone.** All of this is in the code, checked by unit tests and by reading Niagara 1.16.32's code, and none of it has run in Niagara yet:
+**Status: not released yet, and only partly run on a phone.** All of this is in the code, checked by unit tests and by reading Niagara 1.16.32's code. On a phone, only the long-press menu and the favorites editor's list have been seen working so far (Niagara 1.16.32, Private Space unlocked); the rest has not run in Niagara yet:
 
 - A private app's long-press menu offers what a work app's offers (Favorite, Edit pop-up and so on).
 - The favorites, folder, pop-up, Niagara-button, music, hide-apps, Leisure Apps and notification-summary pickers list private apps.
@@ -22,7 +22,7 @@ The release pipeline is written but has not run yet (see `AGENTS.md`). The first
 - A rooted Android 15+ device running [Vector](https://github.com/JingMatrix/Vector) v2.2 or newer (libxposed API 102; 101 also works). The original LSPosed is not supported.
 - Niagara Launcher with Private Space set up in Android's built-in Private Space (not Samsung Secure Folder or other vendor vaults).
 
-Built against Niagara 1.16.32 (1638). It has not been tested on a phone yet; the tested version will be named here after the device check.
+Built against Niagara 1.16.32 (1638). Only part of it has been tested on a phone so far; the tested version will be named here after the whole device check.
 
 ## Install
 
@@ -39,7 +39,7 @@ Then:
 
 There is no settings screen, no toggle and no launcher icon: the module is on when Niagara is in its scope.
 
-If a Niagara update changes the code the module recognises, the module changes nothing and Niagara behaves as stock. Vector's module log has a line that says what was missing.
+If a Niagara update changes the code the module recognises, the module changes nothing and Niagara behaves as stock. The module logs one line that says what was found or missing (logcat tag `NiagaraPrivateSpace`).
 
 ## Build
 
