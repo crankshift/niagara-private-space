@@ -40,6 +40,14 @@ _Avoid_: group, stack
 A set of extra apps attached to a single favorite.
 _Avoid_: swipe apps, sub-favorites
 
+**Picker**:
+A Niagara screen where the user chooses apps: the favorites editor, the folder and pop-up editor, the Niagara-button action pickers, and the pickers for music apps, hidden apps, Leisure Apps and the notification summary.
+_Avoid_: selector, chooser
+
+**Leisure Apps**:
+Niagara's category of distracting apps. Its picker asks for a personal app, which work apps do not satisfy.
+_Avoid_: distraction apps
+
 **Niagara-button action**:
 The app the Niagara button opens on tap or on swipe up.
 _Avoid_: gesture, button shortcut

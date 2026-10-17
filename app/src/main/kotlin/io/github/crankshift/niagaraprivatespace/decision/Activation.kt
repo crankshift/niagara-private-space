@@ -9,6 +9,18 @@ enum class Hook {
     LONG_PRESS_OPTIONS,
     PRIVATE_SPACE_FLAG,
     PRIMARY_USER_FLAG,
+
+    /** The filter that app pickers apply to every candidate app, in the picker base class. */
+    PICKER_FILTER,
+
+    /**
+     * Pickers that replace that filter with their own (folders and pop-ups, hide apps, notification summary).
+     * This hook is one or more methods.
+     */
+    PICKER_FILTER_OVERRIDES,
+
+    /** The Leisure Apps picker's filter, which also asks for a personal app. */
+    PICKER_FILTER_LEISURE_APPS,
 }
 
 /** What the finder located in Niagara: the hooks it found, and nothing about the ones it did not. */

@@ -2,6 +2,7 @@ package io.github.crankshift.niagaraprivatespace
 
 import android.util.Log
 import io.github.crankshift.niagaraprivatespace.decision.Decisions
+import io.github.crankshift.niagaraprivatespace.decision.Hook
 import io.github.crankshift.niagaraprivatespace.finder.Finder
 import io.github.crankshift.niagaraprivatespace.finder.Resolved
 import io.github.crankshift.niagaraprivatespace.hook.Installer
@@ -48,10 +49,16 @@ class NiagaraPrivateSpaceModule : XposedModule() {
         }
         try {
             val hooks = Installer(this, resolved, classLoader).install()
-            log(Log.INFO, TAG, "$niagara: ${activation.logLine()}; ${hooks.size} hooks installed")
+            log(Log.INFO, TAG, "$niagara: ${activation.logLine()}${targetCounts(resolved)}; ${hooks.size} hooks installed")
         } catch (t: Throwable) {
             log(Log.ERROR, TAG, "$niagara: inactive, installing the hooks failed and none were kept", t)
         }
+    }
+
+    /** For hooks that cover several methods, how many were found, so a Niagara update that loses one shows up. */
+    private fun targetCounts(resolved: Resolved): String {
+        val several = Hook.entries.filter { resolved.methodsOf(it).size > 1 }
+        return if (several.isEmpty()) "" else " (" + several.joinToString { "${it.name}=${resolved.methodsOf(it).size}" } + ")"
     }
 
     companion object {

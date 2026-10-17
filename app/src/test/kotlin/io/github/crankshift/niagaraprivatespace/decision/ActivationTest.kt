@@ -8,10 +8,18 @@ import org.junit.jupiter.api.Test
 class ActivationTest {
     private fun reportOf(vararg found: Hook) = ResolutionReport(found.toSet())
 
-    private val everyHook = arrayOf(Hook.LONG_PRESS_OPTIONS, Hook.PRIVATE_SPACE_FLAG, Hook.PRIMARY_USER_FLAG)
+    private val everyHook =
+        arrayOf(
+            Hook.LONG_PRESS_OPTIONS,
+            Hook.PRIVATE_SPACE_FLAG,
+            Hook.PRIMARY_USER_FLAG,
+            Hook.PICKER_FILTER,
+            Hook.PICKER_FILTER_OVERRIDES,
+            Hook.PICKER_FILTER_LEISURE_APPS,
+        )
 
     @Test
-    fun `the module needs the long-press options builder and both profile flags`() {
+    fun `the module needs the long-press options builder, both profile flags and every picker filter`() {
         assertEquals(everyHook.toSet(), Hook.entries.toSet())
     }
 
@@ -24,27 +32,13 @@ class ActivationTest {
     }
 
     @Test
-    fun `a missing long-press options builder keeps the whole module inactive`() {
-        val activation = Decisions.activation(reportOf(Hook.PRIVATE_SPACE_FLAG, Hook.PRIMARY_USER_FLAG))
+    fun `a missing hook keeps the whole module inactive, whichever it is`() {
+        for (missing in everyHook) {
+            val activation = Decisions.activation(reportOf(*everyHook.filter { it != missing }.toTypedArray()))
 
-        assertFalse(activation.active)
-        assertEquals(listOf(Hook.LONG_PRESS_OPTIONS), activation.missing)
-    }
-
-    @Test
-    fun `a missing Private Space flag keeps the whole module inactive`() {
-        val activation = Decisions.activation(reportOf(Hook.LONG_PRESS_OPTIONS, Hook.PRIMARY_USER_FLAG))
-
-        assertFalse(activation.active)
-        assertEquals(listOf(Hook.PRIVATE_SPACE_FLAG), activation.missing)
-    }
-
-    @Test
-    fun `a missing primary-user flag keeps the whole module inactive`() {
-        val activation = Decisions.activation(reportOf(Hook.LONG_PRESS_OPTIONS, Hook.PRIVATE_SPACE_FLAG))
-
-        assertFalse(activation.active)
-        assertEquals(listOf(Hook.PRIMARY_USER_FLAG), activation.missing)
+            assertFalse(activation.active, "module must stay inactive without $missing")
+            assertEquals(listOf(missing), activation.missing, "$missing should be the only hook reported missing")
+        }
     }
 
     @Test
@@ -57,7 +51,7 @@ class ActivationTest {
 
     @Test
     fun `the log line of an inactive module names only what is missing`() {
-        val line = Decisions.activation(reportOf(Hook.PRIVATE_SPACE_FLAG, Hook.PRIMARY_USER_FLAG)).logLine()
+        val line = Decisions.activation(reportOf(*everyHook.filter { it != Hook.LONG_PRESS_OPTIONS }.toTypedArray())).logLine()
 
         assertTrue(line.startsWith("inactive"), line)
         assertTrue(line.contains("LONG_PRESS_OPTIONS"), line)
@@ -72,5 +66,6 @@ class ActivationTest {
         assertTrue(line.contains("LONG_PRESS_OPTIONS"), line)
         assertTrue(line.contains("PRIVATE_SPACE_FLAG"), line)
         assertTrue(line.contains("PRIMARY_USER_FLAG"), line)
+        assertTrue(line.contains("PICKER_FILTER_OVERRIDES"), line)
     }
 }

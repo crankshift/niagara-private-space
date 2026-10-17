@@ -19,6 +19,12 @@ class Installer(
             val flags = ItemFlags(field(Hook.PRIMARY_USER_FLAG), field(Hook.PRIVATE_SPACE_FLAG))
 
             OptionsHooks.install(hooks, flags, method(Hook.LONG_PRESS_OPTIONS))
+            PickerHooks.install(
+                hooks,
+                flags,
+                filters = methods(Hook.PICKER_FILTER) + methods(Hook.PICKER_FILTER_OVERRIDES),
+                leisureAppsFilter = method(Hook.PICKER_FILTER_LEISURE_APPS),
+            )
         } catch (t: Throwable) {
             hooks.removeAll()
             throw t
@@ -28,5 +34,7 @@ class Installer(
 
     private fun field(hook: Hook): Field = requireNotNull(resolved.fieldOf(hook)).getFieldInstance(classLoader)
 
-    private fun method(hook: Hook): Method = resolved.methodsOf(hook).single().getMethodInstance(classLoader)
+    private fun method(hook: Hook): Method = methods(hook).single()
+
+    private fun methods(hook: Hook): List<Method> = resolved.methodsOf(hook).map { it.getMethodInstance(classLoader) }
 }
